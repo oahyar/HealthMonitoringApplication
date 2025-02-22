@@ -19,6 +19,7 @@ NUM_SERVERS = 3
 TABLESPACE_NAMES = ["SYSTEM", "SYSAUX", "USERS", "TEMP", "UNDO", "DATA_TS", "INDEX_TS", "APP_TS", "LOGGING_TS"]
 DAYS_HISTORY = 30
 RECORDS_PER_DAY = 4  # Every 6 hours
+SIDS_PER_SERVER = 2  # Each server has 2 different SIDs
 
 # Connect to PostgreSQL and Create Schemas
 conn = psycopg2.connect(
@@ -42,23 +43,26 @@ def generate_historical_data():
             
             for server_id in range(1, NUM_SERVERS + 1):
                 hostname = f"Server_{server_id}"
+                sids = [f"SID_{server_id}_1", f"SID_{server_id}_2"]  # Two SIDs per server
 
-                # Generate tablespace data per server
-                for tablespace_name in TABLESPACE_NAMES:
-                    total_space_mb = random.randint(50, 500)  # MB
-                    used_space_mb = random.randint(10, total_space_mb)  # MB
-                    free_space_mb = total_space_mb - used_space_mb
-                    usage_pct = int((used_space_mb / total_space_mb) * 100)  # Ensuring whole number
+                for sid in sids:
+                    # Generate tablespace data per server and SID
+                    for tablespace_name in TABLESPACE_NAMES:
+                        total_space_mb = random.randint(50, 500)  # MB
+                        used_space_mb = random.randint(10, total_space_mb)  # MB
+                        free_space_mb = total_space_mb - used_space_mb
+                        usage_pct = int((used_space_mb / total_space_mb) * 100)  # Ensuring whole number
 
-                    tablespace_data.append({
-                        "timestamp": timestamp,
-                        "hostname": hostname,
-                        "tablespace_name": tablespace_name,
-                        "free_space_mb": free_space_mb,
-                        "used_space_mb": used_space_mb,
-                        "total_space_mb": total_space_mb,
-                        "usage_pct": usage_pct  # Now a whole number
-                    })
+                        tablespace_data.append({
+                            "timestamp": timestamp,
+                            "hostname": hostname,
+                            "sid": sid,
+                            "tablespace_name": tablespace_name,
+                            "free_space_mb": free_space_mb,
+                            "used_space_mb": used_space_mb,
+                            "total_space_mb": total_space_mb,
+                            "usage_pct": usage_pct  # Now a whole number
+                        })
 
     return tablespace_data
 

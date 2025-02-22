@@ -80,6 +80,6 @@ diskspace_data = generate_diskspace_data()
 df_diskspace = pd.DataFrame(diskspace_data)
 
 # Store in SQL database with new schema
-df_diskspace.to_sql("server_metrics", con=engine, schema="diskspace", if_exists="replace", index=False)
+df_diskspace.to_sql("server_metrics", con=engine, schema="diskspace", if_exists="replace", index=True)
 
 print(f"Server disk space mock data for {DAYS_HISTORY} days generated and stored in PostgreSQL successfully!")
