@@ -14,6 +14,38 @@
     </div>
 </nav>
 
+<div class="container mt-3">
+    <h2>🚨 High Disk Usage Alert 🚨</h2>
+    <table class="table table-danger">
+        <thead>
+        <tr>
+            <th>Hostname</th>
+            <th>Total Space (MB)</th>
+            <th>Available Space (MB)</th>
+            <th>Used Space (MB)</th>
+            <th>Usage (%)</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="alert : ${highUsageServers}">
+            <td th:text="${alert.hostname}"></td>
+            <td th:text="${alert.totalSpaceMb}"></td>
+            <td th:text="${alert.availableSpaceMb}"></td>
+            <td th:text="${alert.usedSpaceMb}"></td>
+            <td th:text="${alert.usagePct}"></td>
+            <td>
+                <button type="button" class="btn btn-warning retrieve-alert-details"
+                        th:attr="data-hostname=${alert.hostname}">
+                    More Details
+                </button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+
 <!-- ✅ Disk Space Table -->
 <div class="container mt-3">
     <h2>Disk Space Usage</h2>

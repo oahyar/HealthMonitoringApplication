@@ -19,29 +19,64 @@ public interface ServerMetricRepository extends JpaRepository<ServerMetric, Long
     @Query(value = """
     SELECT 
         sm.hostname,
-        SUM(sm.total_diskspace_mb) AS totalDiskspace,
-        SUM(sm.available_diskspace_mb) AS totalAvailableDisk,
-        SUM(sm.used_diskspace_mb) AS totalUsedDisk,
-        CAST((SUM(sm.used_diskspace_mb) * 100) / NULLIF(SUM(sm.total_diskspace_mb), 0) AS BIGINT) AS usagePct
-    FROM diskspace.server_metrics sm
+        SUM(sm.size_mb) AS total_space_mb,
+        SUM(sm.available_mb) AS total_available_space_mb,
+        SUM(sm.used_mb) AS total_used_space_mb,
+        CAST((SUM(sm.used_mb) * 100) / NULLIF(SUM(sm.size_mb), 0) AS BIGINT) AS usage_pct
+    FROM diskspace.server_disk_partitions sm
     INNER JOIN (
-        SELECT hostname, MAX(timestamp) AS latest_timestamp 
-        FROM diskspace.server_metrics 
-        GROUP BY hostname
-    ) latest ON sm.hostname = latest.hostname AND sm.timestamp = latest.latest_timestamp
+        SELECT hostname, filesystem, MAX(timestamp) AS latest_timestamp 
+        FROM diskspace.server_disk_partitions 
+        GROUP BY hostname, filesystem
+    ) latest ON sm.hostname = latest.hostname 
+            AND sm.filesystem = latest.filesystem 
+            AND sm.timestamp = latest.latest_timestamp
     GROUP BY sm.hostname;
     """, nativeQuery = true)
     List<Object[]> findAggregatedSpaceMetrics();
 
     // Retrieve only the latest record per hostname
     @Query(value = """
-    SELECT DISTINCT ON (sm.filesystem) sm.id, sm.hostname, sm.timestamp, sm.size_mb, 
+    SELECT sm.id, sm.hostname, sm.timestamp, sm.size_mb, 
            sm.available_mb, sm.used_mb, sm.usage_pct, sm.mounted_on, sm.filesystem
     FROM diskspace.server_disk_partitions sm
+    INNER JOIN (
+        SELECT hostname, filesystem, MAX(timestamp) AS latest_timestamp
+        FROM diskspace.server_disk_partitions
+        WHERE hostname = :hostname
+        GROUP BY hostname, filesystem
+    ) latest ON sm.hostname = latest.hostname 
+             AND sm.filesystem = latest.filesystem 
+             AND sm.timestamp = latest.latest_timestamp
     WHERE sm.hostname = :hostname
-    ORDER BY sm.filesystem, sm.timestamp DESC
+    ORDER BY sm.usage_pct DESC;
     """, nativeQuery = true)
     List<ServerDiskPartition> findLatestFilesystemByHostname(@Param("hostname") String hostname);
+
+    // Retrieve threshold issue disk
+    @Query(value = """
+    SELECT 
+        sm.hostname,
+        SUM(sm.size_mb) AS total_space_mb,
+        SUM(sm.available_mb) AS total_available_space_mb,
+        SUM(sm.used_mb) AS total_used_space_mb,
+        CAST((SUM(sm.used_mb) * 100) / NULLIF(SUM(sm.size_mb), 0) AS BIGINT) AS usage_pct
+    FROM diskspace.server_disk_partitions sm
+    INNER JOIN (
+        -- Get latest timestamp for each hostname and filesystem
+        SELECT hostname, filesystem, MAX(timestamp) AS latest_timestamp 
+        FROM diskspace.server_disk_partitions 
+        GROUP BY hostname, filesystem
+    ) latest ON sm.hostname = latest.hostname 
+            AND sm.filesystem = latest.filesystem 
+            AND sm.timestamp = latest.latest_timestamp
+    WHERE sm.usage_pct >= 70  -- Only servers where at least one filesystem is >= 70%
+    GROUP BY sm.hostname;
+    """, nativeQuery = true)
+    List<Object[]> findServersWithHighUsageFilesystems();
+
+
+
 
 
 

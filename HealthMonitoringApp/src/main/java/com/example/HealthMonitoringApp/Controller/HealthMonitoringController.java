@@ -69,5 +69,12 @@ public class HealthMonitoringController {
         return tableSpaceService.getLatestTableSpaceDetails(hostname, sid);
     }
 
+    @GetMapping("/high-usage-servers")
+    @ResponseBody
+    public List<AggregatedSpaceMetrics> getHighUsageServers() {
+        return serverMetricService.getAggregatedSpaceMetrics();
+    }
+
+
 
 }
