@@ -44,4 +44,13 @@ public class ServerMetricService {
         List<ServerDiskPartition> result = serverMetricRepository.findLatestFilesystemByHostname(hostname);
         return result;
     }
+
+    public List<ServerDiskPartition> getHighUsageFilesystems(String hostname) {
+        List<ServerDiskPartition> result = serverMetricRepository.findHighUsageFilesystems(hostname);
+        System.out.println("Fetched " + result.size() + " records for hostname: " + hostname);
+        return result;
+    }
+
+
+
 }

@@ -30,6 +30,9 @@ public class HealthMonitoringController {
     public String showDashboard(String hostname,Model model) {
         model.addAttribute("diskUsages", serverMetricService.getAggregatedSpaceMetrics());
         model.addAttribute("tableUsages", tableSpaceService.getAggregatedTableSpaceMetrics());
+        model.addAttribute("highUsageServers", serverMetricService.getAggregatedSpaceMetrics());
+        model.addAttribute("highUsageFile", serverMetricService.getHighUsageFilesystems(hostname));
+
         return "dashboard";
     }
 
@@ -69,12 +72,10 @@ public class HealthMonitoringController {
         return tableSpaceService.getLatestTableSpaceDetails(hostname, sid);
     }
 
-    @GetMapping("/high-usage-servers")
+    @GetMapping("/high-usage-filesystems/{hostname}")
     @ResponseBody
-    public List<AggregatedSpaceMetrics> getHighUsageServers() {
-        return serverMetricService.getAggregatedSpaceMetrics();
+    public List<ServerDiskPartition> getHighUsageFilesystems(@PathVariable String hostname) {
+        return serverMetricService.getHighUsageFilesystems(hostname);
     }
-
-
 
 }

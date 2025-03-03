@@ -18,8 +18,8 @@ engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}
 NUM_SERVERS = 3
 DISK_PARTITIONS = ["/", "/home", "/var", "/tmp"]  # Simulated partitions
 FILESYSTEM_TYPES = ["ext4", "xfs", "btrfs"]  # Randomly assigned filesystems
-DAYS_HISTORY = 30
-RECORDS_PER_DAY = 4  # Every 6 hours
+DAYS_HISTORY = 3
+RECORDS_PER_DAY = 2  # Every 6 hours
 
 # Connect to PostgreSQL and Create Schema
 conn = psycopg2.connect(
@@ -76,28 +76,36 @@ def generate_server_metrics():
 
     return server_metrics
 
+import itertools  # Import cycle for repeating filesystem types
+
 def generate_disk_partitions():
-    """Generates individual disk partition data for each server."""
+    """Generates individual disk partition data for each server with unique timestamps."""
     disk_partitions = []
     
     start_time = datetime.now() - timedelta(days=DAYS_HISTORY)
 
     for day in range(DAYS_HISTORY):
         for record in range(RECORDS_PER_DAY):
-            timestamp = start_time + timedelta(days=day, hours=record * (24 / RECORDS_PER_DAY))
-            
+            base_timestamp = start_time + timedelta(days=day, hours=record * (24 / RECORDS_PER_DAY))
+
             for server_id in range(1, NUM_SERVERS + 1):
                 hostname = f"Server_{server_id}"
 
-                for mount_point in DISK_PARTITIONS:
+                # Ensure enough filesystems by cycling through the list
+                assigned_filesystems = list(itertools.islice(itertools.cycle(FILESYSTEM_TYPES), len(DISK_PARTITIONS)))
+
+                for index, mount_point in enumerate(DISK_PARTITIONS):
                     total_size_mb = random.randint(50000, 500000)  # MB
                     used_size_mb = random.randint(10000, total_size_mb)  # MB
                     available_size_mb = total_size_mb - used_size_mb
                     usage_pct = int((used_size_mb / total_size_mb) * 100)
-                    filesystem = random.choice(FILESYSTEM_TYPES)
+                    filesystem = assigned_filesystems[index]  # Unique per mount point
+                    
+                    # Slight timestamp variation
+                    varied_timestamp = base_timestamp + timedelta(seconds=random.randint(1, 59))
 
                     disk_partitions.append({
-                        "timestamp": timestamp,
+                        "timestamp": varied_timestamp,
                         "hostname": hostname,
                         "size_mb": total_size_mb,
                         "available_mb": available_size_mb,
@@ -108,6 +116,7 @@ def generate_disk_partitions():
                     })
 
     return disk_partitions
+
 
 # Generate historical data
 server_metrics_data = generate_server_metrics()
