@@ -1,6 +1,7 @@
 package com.example.HealthMonitoringApp.Entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -32,33 +33,79 @@ public class ServerDiskPartition {
     @Column(name = "filesystem")
     private String filesystem;
 
-    public ServerDiskPartition() {}
+    public ServerDiskPartition() {
+    }
 
     // Getters & Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getHostname() { return hostname; }
-    public void setHostname(String hostname) { this.hostname = hostname; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public LocalDateTime getTimestamp() { return timestamp; }
-    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    public String getHostname() {
+        return hostname;
+    }
 
-    public Long getSizeMb() { return sizeMb; }
-    public void setSizeMb(Long sizeMb) { this.sizeMb = sizeMb; }
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
 
-    public Long getAvailableMb() { return availableMb; }
-    public void setAvailableMb(Long availableMb) { this.availableMb = availableMb; }
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 
-    public Long getUsedMb() { return usedMb; }
-    public void setUsedMb(Long usedMb) { this.usedMb = usedMb; }
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
 
-    public Integer getUsagePct() { return usagePct; }
-    public void setUsagePct(Integer usagePct) { this.usagePct = usagePct; }
+    public Long getSizeMb() {
+        return sizeMb;
+    }
 
-    public String getMountedOn() { return mountedOn; }
-    public void setMountedOn(String mountedOn) { this.mountedOn = mountedOn; }
+    public void setSizeMb(Long sizeMb) {
+        this.sizeMb = sizeMb;
+    }
 
-    public String getFilesystem() { return filesystem; }
-    public void setFilesystem(String filesystem) { this.filesystem = filesystem; }
+    public Long getAvailableMb() {
+        return availableMb;
+    }
+
+    public void setAvailableMb(Long availableMb) {
+        this.availableMb = availableMb;
+    }
+
+    public Long getUsedMb() {
+        return usedMb;
+    }
+
+    public void setUsedMb(Long usedMb) {
+        this.usedMb = usedMb;
+    }
+
+    public Integer getUsagePct() {
+        return usagePct;
+    }
+
+    public void setUsagePct(Integer usagePct) {
+        this.usagePct = usagePct;
+    }
+
+    public String getMountedOn() {
+        return mountedOn;
+    }
+
+    public void setMountedOn(String mountedOn) {
+        this.mountedOn = mountedOn;
+    }
+
+    public String getFilesystem() {
+        return filesystem;
+    }
+
+    public void setFilesystem(String filesystem) {
+        this.filesystem = filesystem;
+    }
 }

@@ -1,6 +1,7 @@
 package com.example.HealthMonitoringApp.Entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,43 +24,104 @@ public class ServerMetric {
     private int totalMemoryMb;
     private int usedMemoryMb;
 
-    public ServerMetric() {}
+    public ServerMetric() {
+    }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getHostname() { return hostname; }
-    public void setHostname(String hostname) { this.hostname = hostname; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public LocalDateTime getTimestamp() { return timestamp; }
-    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    public String getHostname() {
+        return hostname;
+    }
 
-    public int getTotalDiskspaceMb() { return totalDiskspaceMb; }
-    public void setTotalDiskspaceMb(int totalDiskspaceMb) { this.totalDiskspaceMb = totalDiskspaceMb; }
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
 
-    public int getAvailableDiskspaceMb() { return availableDiskspaceMb; }
-    public void setAvailableDiskspaceMb(int availableDiskspaceMb) { this.availableDiskspaceMb = availableDiskspaceMb; }
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 
-    public int getUsedDiskspaceMb() { return usedDiskspaceMb; }
-    public void setUsedDiskspaceMb(int usedDiskspaceMb) { this.usedDiskspaceMb = usedDiskspaceMb; }
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
 
-    public int getUsagePercentageDiskspace() { return usagePercentageDiskspace; }
-    public void setUsagePercentageDiskspace(int usagePercentageDiskspace) { this.usagePercentageDiskspace = usagePercentageDiskspace; }
+    public int getTotalDiskspaceMb() {
+        return totalDiskspaceMb;
+    }
 
-    public int getAvailableMemoryMb() { return availableMemoryMb; }
-    public void setAvailableMemoryMb(int availableMemoryMb) { this.availableMemoryMb = availableMemoryMb; }
+    public void setTotalDiskspaceMb(int totalDiskspaceMb) {
+        this.totalDiskspaceMb = totalDiskspaceMb;
+    }
 
-    public int getCacheMemoryMb() { return cacheMemoryMb; }
-    public void setCacheMemoryMb(int cacheMemoryMb) { this.cacheMemoryMb = cacheMemoryMb; }
+    public int getAvailableDiskspaceMb() {
+        return availableDiskspaceMb;
+    }
 
-    public int getFreeMemoryMb() { return freeMemoryMb; }
-    public void setFreeMemoryMb(int freeMemoryMb) { this.freeMemoryMb = freeMemoryMb; }
+    public void setAvailableDiskspaceMb(int availableDiskspaceMb) {
+        this.availableDiskspaceMb = availableDiskspaceMb;
+    }
 
-    public int getTotalMemoryMb() { return totalMemoryMb; }
-    public void setTotalMemoryMb(int totalMemoryMb) { this.totalMemoryMb = totalMemoryMb; }
+    public int getUsedDiskspaceMb() {
+        return usedDiskspaceMb;
+    }
 
-    public int getUsedMemoryMb() { return usedMemoryMb; }
-    public void setUsedMemoryMb(int usedMemoryMb) { this.usedMemoryMb = usedMemoryMb; }
+    public void setUsedDiskspaceMb(int usedDiskspaceMb) {
+        this.usedDiskspaceMb = usedDiskspaceMb;
+    }
+
+    public int getUsagePercentageDiskspace() {
+        return usagePercentageDiskspace;
+    }
+
+    public void setUsagePercentageDiskspace(int usagePercentageDiskspace) {
+        this.usagePercentageDiskspace = usagePercentageDiskspace;
+    }
+
+    public int getAvailableMemoryMb() {
+        return availableMemoryMb;
+    }
+
+    public void setAvailableMemoryMb(int availableMemoryMb) {
+        this.availableMemoryMb = availableMemoryMb;
+    }
+
+    public int getCacheMemoryMb() {
+        return cacheMemoryMb;
+    }
+
+    public void setCacheMemoryMb(int cacheMemoryMb) {
+        this.cacheMemoryMb = cacheMemoryMb;
+    }
+
+    public int getFreeMemoryMb() {
+        return freeMemoryMb;
+    }
+
+    public void setFreeMemoryMb(int freeMemoryMb) {
+        this.freeMemoryMb = freeMemoryMb;
+    }
+
+    public int getTotalMemoryMb() {
+        return totalMemoryMb;
+    }
+
+    public void setTotalMemoryMb(int totalMemoryMb) {
+        this.totalMemoryMb = totalMemoryMb;
+    }
+
+    public int getUsedMemoryMb() {
+        return usedMemoryMb;
+    }
+
+    public void setUsedMemoryMb(int usedMemoryMb) {
+        this.usedMemoryMb = usedMemoryMb;
+    }
 
     @Override
     public String toString() {

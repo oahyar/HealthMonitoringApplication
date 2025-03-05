@@ -2,6 +2,9 @@ package com.example.HealthMonitoringApp.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -9,6 +12,8 @@ import java.time.format.DateTimeFormatter;
 @Entity
 @Table(name = "database_tablespace", schema = "db")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Prevents serialization issues
+@NoArgsConstructor
+@AllArgsConstructor
 public class TableSpace implements Serializable {
 
     @Id
@@ -24,11 +29,11 @@ public class TableSpace implements Serializable {
     private Long totalSpaceMb;
     private Long usagePct;
 
-    public TableSpace(Long id, String timestamp, String hostname, String sid, String tablespaceName,
+    public TableSpace(Long id, LocalDateTime timestamp, String hostname, String sid, String tablespaceName,
                       Long freeSpaceMb, Long usedSpaceMb, Long totalSpaceMb, Long usagePct) {
         this.id = id;
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
-        this.timestamp = LocalDateTime.parse(timestamp, formatter);
+        this.timestamp = timestamp;
         this.hostname = hostname;
         this.sid = sid;
         this.tablespaceName = tablespaceName;
@@ -40,29 +45,69 @@ public class TableSpace implements Serializable {
 
 
     // Getters & Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public LocalDateTime getTimestamp() { return timestamp; }
-    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getHostname() { return hostname; }
-    public void setHostname(String hostname) { this.hostname = hostname; }
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 
-    public String getTablespaceName() { return tablespaceName; }
-    public void setTablespaceName(String tablespaceName) { this.tablespaceName = tablespaceName; }
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
 
-    public Long getFreeSpaceMb() { return freeSpaceMb; }
-    public void setFreeSpaceMb(Long freeSpaceMb) { this.freeSpaceMb = freeSpaceMb; }
+    public String getHostname() {
+        return hostname;
+    }
 
-    public Long getUsedSpaceMb() { return usedSpaceMb; }
-    public void setUsedSpaceMb(Long usedSpaceMb) { this.usedSpaceMb = usedSpaceMb; }
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
 
-    public Long getTotalSpaceMb() { return totalSpaceMb; }
-    public void setTotalSpaceMb(Long totalSpaceMb) { this.totalSpaceMb = totalSpaceMb; }
+    public String getTablespaceName() {
+        return tablespaceName;
+    }
 
-    public Long getUsagePct() { return usagePct; }
-    public void setUsagePct(Long usagePct) { this.usagePct = usagePct; }
+    public void setTablespaceName(String tablespaceName) {
+        this.tablespaceName = tablespaceName;
+    }
+
+    public Long getFreeSpaceMb() {
+        return freeSpaceMb;
+    }
+
+    public void setFreeSpaceMb(Long freeSpaceMb) {
+        this.freeSpaceMb = freeSpaceMb;
+    }
+
+    public Long getUsedSpaceMb() {
+        return usedSpaceMb;
+    }
+
+    public void setUsedSpaceMb(Long usedSpaceMb) {
+        this.usedSpaceMb = usedSpaceMb;
+    }
+
+    public Long getTotalSpaceMb() {
+        return totalSpaceMb;
+    }
+
+    public void setTotalSpaceMb(Long totalSpaceMb) {
+        this.totalSpaceMb = totalSpaceMb;
+    }
+
+    public Long getUsagePct() {
+        return usagePct;
+    }
+
+    public void setUsagePct(Long usagePct) {
+        this.usagePct = usagePct;
+    }
 
     public String getSid() {
         return sid;
@@ -71,9 +116,6 @@ public class TableSpace implements Serializable {
     public void setSid(String sid) {
         this.sid = sid;
     }
-
-
-
 
 
 }

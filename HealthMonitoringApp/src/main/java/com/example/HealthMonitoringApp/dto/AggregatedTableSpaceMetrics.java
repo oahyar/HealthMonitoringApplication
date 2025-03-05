@@ -19,10 +19,27 @@ public class AggregatedTableSpaceMetrics {
     }
 
     // ✅ Getters (Spring Boot needs these for JSON serialization)
-    public String getHostname() { return hostname; }
-    public String getSid() { return sid; }
-    public Long getTotalTablespace() { return totalTablespace; }
-    public Long getTotalAvailableTablespace() { return totalAvailableTablespace; }
-    public Long getTotalUsedTablespace() { return totalUsedTablespace; }
-    public Long getUsagePct() { return usagePct; }
+    public String getHostname() {
+        return hostname;
+    }
+
+    public String getSid() {
+        return sid;
+    }
+
+    public Long getTotalTablespace() {
+        return totalTablespace;
+    }
+
+    public Long getTotalAvailableTablespace() {
+        return totalAvailableTablespace;
+    }
+
+    public Long getTotalUsedTablespace() {
+        return totalUsedTablespace;
+    }
+
+    public Long getUsagePct() {
+        return usagePct;
+    }
 }

@@ -12,24 +12,18 @@ import java.util.List;
 @SpringBootApplication
 public class HealthMonitoringAppApplication implements CommandLineRunner {
 
-	@Autowired
-	private ServerMetricService serverMetricService;
+    @Autowired
+    private ServerMetricService serverMetricService;
 
-	public static void main(String[] args) {
-		SpringApplication.run(HealthMonitoringAppApplication.class, args);
-		System.out.println("✅ Health Monitoring App is running...");
-	}
-	@Override
-	public void run(String... args) throws Exception {
-		System.out.println("Fetching server metrics...");
+    public static void main(String[] args) {
+        SpringApplication.run(HealthMonitoringAppApplication.class, args);
+        System.out.println("✅ Health Monitoring App is running...");
+    }
 
-		List<ServerMetric> metrics = serverMetricService.getAllMetrics();
-		if (metrics.isEmpty()) {
-			System.out.println("⚠ No data found in server_metrics table.");
-		} else {
-			metrics.forEach(System.out::println);
-		}
-	}
+    @Override
+    public void run(String... args) throws Exception {
+
+    }
 
 
 }

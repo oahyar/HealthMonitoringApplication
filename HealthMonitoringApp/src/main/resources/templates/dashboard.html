@@ -45,6 +45,39 @@
     </table>
 </div>
 
+<div class="container mt-3">
+    <h2>🚨 High Table Space Usage Alert 🚨</h2>
+    <table class="table table-danger">
+        <thead>
+        <tr>
+            <th>Hostname</th>
+            <th>SID</th>
+            <th>Total Space (MB)</th>
+            <th>Available Space (MB)</th>
+            <th>Used Space (MB)</th>
+            <th>Usage (%)</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="alertdb : ${highUsageDb}">
+            <td th:text="${alertdb.hostname}"></td>
+            <td th:text="${alertdb.sid}"></td>
+            <td th:text="${alertdb.totalTablespace}"></td>
+            <td th:text="${alertdb.totalAvailableTablespace}"></td>
+            <td th:text="${alertdb.totalUsedTablespace}"></td>
+            <td th:text="${alertdb.usagePct}"></td>
+            <td>
+                <button type="button" class="btn btn-warning retrieve-alertdb-details"
+                        th:attr="data-sid=${alertdb.sid}">
+                    More Details
+                </button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
 <!-- ✅ Disk Space Table -->
 <div class="container mt-3">
     <h2>Disk Space Usage</h2>
@@ -137,9 +170,11 @@
 <!-- ✅ JavaScript for Fetching Data -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        // Retrieve alert for tablespace
         document.querySelectorAll(".retrieve-alert-details").forEach(button => {
             button.addEventListener("click", function () {
                 let hostname = this.getAttribute("data-hostname");
+                let rowElement = this.closest("tr"); // ✅ Get the row of the clicked button
 
                 console.log("Fetching alert details for Hostname:", hostname);
 
@@ -148,8 +183,6 @@
                 let modalTableBody = document.getElementById("modalTableBody");
 
                 modalTitle.textContent = `High Disk Usage Details - ${hostname}`;
-
-                // ✅ Show a loading message while data is being fetched
                 modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Loading...</td></tr>`;
 
                 fetch(`/high-usage-filesystems/${hostname}`)
@@ -162,33 +195,101 @@
                     .then(details => {
                         console.log("Received alert details:", details);
 
+                        // ✅ Filter details that meet the threshold (≥ 70% usage)
+                        let filteredDetails = details.filter(detail => detail.usagePct >= 70);
+
+                        // ✅ If no filesystem meets the threshold, remove the server from the table
+                        if (filteredDetails.length === 0) {
+                            rowElement.style.display = "none"; // ✅ Hide the row
+                            return;
+                        }
+
+                        modalTableHead.innerHTML = `
+                    <tr>
+                        <th>Hostname</th>
+                        <th>Filesystem</th>
+                        <th>Size (MB)</th>
+                        <th>Available (MB)</th>
+                        <th>Used (MB)</th>
+                        <th>Usage (%)</th>
+                        <th>Mounted On</th>
+                    </tr>`;
+
+                        modalTableBody.innerHTML = "";
+
+                        filteredDetails.forEach(detail => {
+                            let row = `<tr>
+                            <td>${detail.hostname}</td>
+                            <td>${detail.filesystem}</td>
+                            <td>${detail.sizeMb} MB</td>
+                            <td>${detail.availableMb} MB</td>
+                            <td>${detail.usedMb} MB</td>
+                            <td>${detail.usagePct}%</td>
+                            <td>${detail.mountedOn}</td>
+                        </tr>`;
+                            modalTableBody.innerHTML += row;
+                        });
+
+                        new bootstrap.Modal(document.getElementById("detailsModal")).show();
+                    })
+                    .catch(error => {
+                        console.error("Error fetching details:", error);
+                        modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error fetching data.</td></tr>`;
+                    });
+            });
+        });
+
+        // Retrieve alert for db
+        document.querySelectorAll(".retrieve-alertdb-details").forEach(button => {
+            button.addEventListener("click", function () {
+                let sid = this.getAttribute("data-sid");
+
+                console.log("Fetching tablespace details for SID:", sid);
+
+                let modalTitle = document.getElementById("modalTitle");
+                let modalTableHead = document.getElementById("modalTableHead");
+                let modalTableBody = document.getElementById("modalTableBody");
+
+                modalTitle.textContent = `High Tablespace Usage Details - ${sid}`;
+                modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Loading...</td></tr>`;
+
+                fetch(`/high-usage-db/${sid}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(details => {
+                        console.log("Received tablespace details:", details);
+
                         // ✅ Ensure modal headers are set
                         modalTableHead.innerHTML = `
                         <tr>
                             <th>Hostname</th>
-                            <th>Filesystem</th>
-                            <th>Size (MB)</th>
-                            <th>Available (MB)</th>
-                            <th>Used (MB)</th>
+                            <th>SID</th>
+                            <th>Tablespace Name</th>
+                            <th>Total Space (MB)</th>
+                            <th>Available Space (MB)</th>
+                            <th>Used Space (MB)</th>
                             <th>Usage (%)</th>
-                            <th>Mounted On</th>
                         </tr>`;
 
                         // ✅ Reset table body
                         modalTableBody.innerHTML = "";
 
                         if (details.length === 0) {
-                            modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">No data found for ${hostname}</td></tr>`;
+                            modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">No high usage data found for ${sid}</td></tr>`;
                         } else {
                             details.forEach(detail => {
                                 let row = `<tr>
                                 <td>${detail.hostname}</td>
-                                <td>${detail.filesystem}</td>
-                                <td>${detail.sizeMb} MB</td>
-                                <td>${detail.availableMb} MB</td>
-                                <td>${detail.usedMb} MB</td>
+                                <td>${detail.sid}</td>
+                                <td>${detail.tablespaceName}</td>
+                                <td>${detail.freeSpaceMb} MB</td>
+                                <td>${detail.usedSpaceMb} MB</td>
+                                <td>${detail.totalSpaceMb} MB</td>
                                 <td>${detail.usagePct}%</td>
-                                <td>${detail.mountedOn}</td>
                             </tr>`;
                                 modalTableBody.innerHTML += row;
                             });
@@ -203,104 +304,11 @@
             });
         });
 
-        document.querySelectorAll(".retrieve-alert-details").forEach(button => {
-            button.addEventListener("click", function () {
-                let hostname = this.getAttribute("data-hostname");
-
-                console.log("Fetching alert details for Hostname:", hostname);
-
-                fetch(`/high-usage-filesystems/${hostname}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(details => {
-                        console.log("Received alert details:", details);
-
-                        let modalTableBody = document.querySelector("#modalTableBody");
-                        modalTableBody.innerHTML = "";
-
-                        if (details.length === 0) {
-                            modalTableBody.innerHTML = `<tr><td colspan="5">No data found for ${hostname}</td></tr>`;
-                        } else {
-                            details.forEach(detail => {
-                                let row = `<tr>
-                                        <td>${detail.hostname}</td>
-                                        <td>${detail.filesystem}</td>
-                                        <td>${detail.sizeMb} MB</td>
-                                        <td>${detail.availableMb} MB</td>
-                                        <td>${detail.usedMb} MB</td>
-                                        <td>${detail.usagePct}%</td>
-                                        <td>${detail.mountedOn}</td>
-                                    </tr>`;
-                                modalTableBody.innerHTML += row;
-                            });
-                        }
-
-                        let modal = new bootstrap.Modal(document.getElementById("detailsModal"));
-                        modal.show();
-                    })
-                    .catch(error => {
-                        console.error("Error fetching details:", error);
-                        document.querySelector("#modalTableBody").innerHTML = `<tr><td colspan="5">Error fetching data.</td></tr>`;
-                    });
-            });
-        });
-
-
-        document.querySelectorAll(".retrieve-alert-details").forEach(button => {
-            button.addEventListener("click", function () {
-                let hostname = this.getAttribute("data-hostname");
-
-                console.log("Fetching alert details for Hostname:", hostname);
-
-                fetch(`/high-usage-filesystems/${hostname}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(details => {
-                        console.log("Received alert details:", details);
-
-                        let modalTableBody = document.querySelector("#modalTableBody");
-                        modalTableBody.innerHTML = "";
-
-                        if (details.length === 0) {
-                            modalTableBody.innerHTML = `<tr><td colspan="5">No data found for ${hostname}</td></tr>`;
-                        } else {
-                            details.forEach(detail => {
-                                let row = `<tr>
-                                        <td>${detail.hostname}</td>
-                                        <td>${detail.filesystem}</td>
-                                        <td>${detail.sizeMb} MB</td>
-                                        <td>${detail.availableMb} MB</td>
-                                        <td>${detail.usedMb} MB</td>
-                                        <td>${detail.usagePct}%</td>
-                                        <td>${detail.mountedOn}</td>
-                                    </tr>`;
-                                modalTableBody.innerHTML += row;
-                            });
-                        }
-
-                        let modal = new bootstrap.Modal(document.getElementById("detailsModal"));
-                        modal.show();
-                    })
-                    .catch(error => {
-                        console.error("Error fetching details:", error);
-                        document.querySelector("#modalTableBody").innerHTML = `<tr><td colspan="5">Error fetching data.</td></tr>`;
-                    });
-            });
-        });
         // ✅ Remove leftover modal backdrop when modal is hidden
         document.getElementById("detailsModal").addEventListener("hidden.bs.modal", function () {
             console.log("Modal closed, removing backdrop...");
             document.querySelectorAll(".modal-backdrop").forEach(backdrop => backdrop.remove());
         });
-
 
         // ✅ Fetch and Display Disk Space Details
         document.querySelectorAll(".retrieve-data-btn").forEach(button => {
