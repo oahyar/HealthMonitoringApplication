@@ -15,10 +15,13 @@
 </nav>
 
 <div class="container mt-3">
-    <h2>🚨 High Disk Usage Alert 🚨</h2>
-    <!-- ✅ Refresh Button -->
-    <a href="/dashboard" class="btn btn-primary mb-3">🔄 Refresh</a>
-    <table class="table table-danger">
+    <h2>High Disk Usage Alert</h2>
+    <div class="d-flex align-items-center gap-2">
+        <!-- ✅ Refresh Button -->
+        <a id="refresh-btn" href="/dashboard" class="btn btn-primary">Refresh</a>
+        <p id="last-refresh" class="mb-0">Last Refreshed: --</p>
+    </div>
+    <table class="table table-danger mt-3">
         <thead>
         <tr>
             <th>Hostname</th>
@@ -48,7 +51,7 @@
 </div>
 
 <div class="container mt-3">
-    <h2>🚨 High Table Space Usage Alert 🚨</h2>
+    <h2>High Table Space Usage Alert</h2>
     <table class="table table-danger">
         <thead>
         <tr>
@@ -420,6 +423,28 @@
             });
         });
     });
+
+    // Refresh button last update time
+    function updateLastRefreshTime() {
+        // Get the current UTC time
+        const now = new Date();
+
+        // Convert UTC to Singapore Time (UTC+8)
+        const options = { timeZone: 'Asia/Singapore', year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
+        const formattedTime = new Intl.DateTimeFormat('en-GB', options).format(now).replace(',', '');
+
+        // Update the UI with the new timestamp
+        document.getElementById('last-refresh').innerText = `Last Refreshed: ${formattedTime} SGT`;
+    }
+
+    // Attach event listener to refresh button
+    document.getElementById('refresh-btn').addEventListener('click', updateLastRefreshTime);
+
+    // Set initial refresh time when the page loads
+    updateLastRefreshTime();
+
 </script>
 
 </body>
