@@ -16,6 +16,8 @@
 
 <div class="container mt-3">
     <h2>🚨 High Disk Usage Alert 🚨</h2>
+    <!-- ✅ Refresh Button -->
+    <a href="/dashboard" class="btn btn-primary mb-3">🔄 Refresh</a>
     <table class="table table-danger">
         <thead>
         <tr>
@@ -170,6 +172,7 @@
 <!-- ✅ JavaScript for Fetching Data -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+
         // Retrieve alert for tablespace
         document.querySelectorAll(".retrieve-alert-details").forEach(button => {
             button.addEventListener("click", function () {

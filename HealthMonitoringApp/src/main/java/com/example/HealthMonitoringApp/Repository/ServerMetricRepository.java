@@ -1,7 +1,6 @@
 package com.example.HealthMonitoringApp.Repository;
 
 import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
-import com.example.HealthMonitoringApp.Entity.ServerMetric;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,14 +10,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ServerMetricRepository extends JpaRepository<ServerMetric, Long> {
+public interface ServerMetricRepository extends JpaRepository<ServerDiskPartition, Long> {
 
-    // Retrieves all ServerMetric records associated with a given hostname
-    List<ServerMetric> findByHostname(String hostname);
-
-    // Retrieves all server metrics from the `server_metrics` table
-    @Query(value = "SELECT * FROM diskspace.server_metrics", nativeQuery = true)
-    List<ServerMetric> findAllMetrics();
 
     // Aggregates disk space metrics for each hostname, calculating total size, available space, used space, and usage percentage.
     @Query(value = """

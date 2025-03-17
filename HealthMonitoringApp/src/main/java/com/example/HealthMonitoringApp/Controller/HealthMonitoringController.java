@@ -1,7 +1,6 @@
 package com.example.HealthMonitoringApp.Controller;
 
 import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
-import com.example.HealthMonitoringApp.Entity.ServerMetric;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
 import com.example.HealthMonitoringApp.Service.ServerMetricService;
 import com.example.HealthMonitoringApp.Service.TableSpaceService;

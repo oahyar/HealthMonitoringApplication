@@ -3,6 +3,8 @@ package com.example.HealthMonitoringApp.Service;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
 import com.example.HealthMonitoringApp.Repository.TableSpaceRepository;
 import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,131 +17,127 @@ import java.util.List;
 @Service
 public class TableSpaceService {
 
+    private static final Logger logger = LoggerFactory.getLogger(TableSpaceService.class);
+
     @Autowired
     private TableSpaceRepository tableSpaceRepository;
 
-    /**
-     * Retrieves aggregated tablespace metrics, including total, available, and used space,
-     * along with usage percentage for each hostname and SID.
-     * @return List of AggregatedTableSpaceMetrics objects with summarized tablespace data.
-     */
     public List<AggregatedTableSpaceMetrics> getAggregatedTableSpaceMetrics() {
+        logger.info("Fetching aggregated tablespace metrics...");
         List<Object[]> results = tableSpaceRepository.findAggregatedTableSpaceMetrics();
         List<AggregatedTableSpaceMetrics> metrics = new ArrayList<>();
 
-        // Convert query result objects into AggregatedTableSpaceMetrics
         for (Object[] row : results) {
-            AggregatedTableSpaceMetrics metric = new AggregatedTableSpaceMetrics(
-                    (String) row[0], // Hostname
-                    (String) row[1], // SID
-                    ((Number) row[2]).longValue(), // Total Tablespace (MB)
-                    ((Number) row[3]).longValue(), // Available Tablespace (MB)
-                    ((Number) row[4]).longValue(), // Used Tablespace (MB)
-                    ((Number) row[5]).longValue()  // Usage Percentage
-            );
-            metrics.add(metric);
+            try {
+                AggregatedTableSpaceMetrics metric = new AggregatedTableSpaceMetrics(
+                        (String) row[0],
+                        (String) row[1],
+                        ((Number) row[2]).longValue(),
+                        ((Number) row[3]).longValue(),
+                        ((Number) row[4]).longValue(),
+                        ((Number) row[5]).longValue()
+                );
+                metrics.add(metric);
+            } catch (Exception e) {
+                logger.error("Error processing row: {}", row, e);
+            }
         }
+
+        logger.info("Successfully retrieved {} aggregated tablespace metrics.", metrics.size());
         return metrics;
     }
 
-    /**
-     * Retrieves detailed tablespace information for a given hostname and SID.
-     * @param hostname The server's hostname.
-     * @param sid The database SID.
-     * @return List of TableSpace objects with the latest tablespace details.
-     */
     public List<TableSpace> getLatestTableSpaceDetails(String hostname, String sid) {
+        logger.info("Fetching latest tablespace details for hostname: {} and SID: {}", hostname, sid);
         List<Object[]> results = tableSpaceRepository.findLatestTableSpaceDetails(hostname, sid);
         List<TableSpace> details = new ArrayList<>();
 
-        // Convert query results into TableSpace objects
         for (Object[] row : results) {
-            TableSpace detail = new TableSpace(
-                    row[0] != null ? ((Number) row[0]).longValue() : null, // ID
-                    row[1] != null ? parseTimestamp(row[1]) : null, // Timestamp
-                    row[2] != null ? row[2].toString() : null, // Hostname
-                    row[3] != null ? row[3].toString() : null, // SID
-                    row[4] != null ? row[4].toString() : null, // Tablespace Name
-                    row[5] != null ? ((Number) row[5]).longValue() : null, // Free Space (MB)
-                    row[6] != null ? ((Number) row[6]).longValue() : null, // Used Space (MB)
-                    row[7] != null ? ((Number) row[7]).longValue() : null, // Total Space (MB)
-                    row[8] != null ? ((Number) row[8]).longValue() : null  // Usage Percentage
-            );
-            details.add(detail);
+            try {
+                TableSpace detail = new TableSpace(
+                        row[0] != null ? ((Number) row[0]).longValue() : null,
+                        row[1] != null ? parseTimestamp(row[1]) : null,
+                        row[2] != null ? row[2].toString() : null,
+                        row[3] != null ? row[3].toString() : null,
+                        row[4] != null ? row[4].toString() : null,
+                        row[5] != null ? ((Number) row[5]).longValue() : null,
+                        row[6] != null ? ((Number) row[6]).longValue() : null,
+                        row[7] != null ? ((Number) row[7]).longValue() : null,
+                        row[8] != null ? ((Number) row[8]).longValue() : null
+                );
+                details.add(detail);
+            } catch (Exception e) {
+                logger.error("Error processing tablespace details for {} - {}: {}", hostname, sid, e.getMessage(), e);
+            }
         }
+
+        logger.info("Retrieved {} tablespace records for hostname: {} and SID: {}", details.size(), hostname, sid);
         return details;
     }
 
-    /**
-     * Parses an Object timestamp into LocalDateTime.
-     * Handles different timestamp formats (SQL Timestamp, String).
-     * @param timestamp The timestamp object from the database.
-     * @return Parsed LocalDateTime or null if conversion fails.
-     */
     private LocalDateTime parseTimestamp(Object timestamp) {
         if (timestamp == null) {
-            return null; // Return null if the timestamp is missing
+            logger.warn("Received null timestamp for parsing.");
+            return null;
         }
 
         try {
             if (timestamp instanceof Timestamp) {
-                return ((Timestamp) timestamp).toLocalDateTime(); // Convert SQL Timestamp
+                return ((Timestamp) timestamp).toLocalDateTime();
             } else if (timestamp instanceof String) {
-                // Attempt to parse timestamp if it's a valid string
-                System.out.println("Parsing timestamp: " + timestamp); // Debugging log
+                logger.debug("Parsing timestamp: {}", timestamp);
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 return LocalDateTime.parse((String) timestamp, formatter);
             }
         } catch (Exception e) {
-            System.err.println("⚠️ Error parsing timestamp: " + timestamp + " | Error: " + e.getMessage());
+            logger.error("Error parsing timestamp: {} | Error: {}", timestamp, e.getMessage(), e);
         }
 
-        return null; // Return null if parsing fails
+        return null;
     }
 
-    /**
-     * Retrieves tablespaces with high usage (≥ 70%) for a given SID.
-     * @param sid The database SID.
-     * @return List of TableSpace objects where usage exceeds 70%.
-     */
     public List<TableSpace> getHighUsageTablespaces(String sid) {
+        logger.info("Fetching high usage tablespaces for SID: {}", sid);
         List<Object[]> results = tableSpaceRepository.findHighUsageTablespaces(sid);
         List<TableSpace> details = new ArrayList<>();
 
-        // Convert query results into TableSpace objects
         for (Object[] row : results) {
-            TableSpace detail = new TableSpace(
-                    row[0] != null ? ((Number) row[0]).longValue() : null, // ID
-                    row[1] != null ? parseTimestamp(row[1]) : null, // Timestamp
-                    row[2] != null ? row[2].toString() : null, // Hostname
-                    row[3] != null ? row[3].toString() : null, // SID
-                    row[4] != null ? row[4].toString() : null, // Tablespace Name
-                    row[5] != null ? ((Number) row[5]).longValue() : null, // Free Space (MB)
-                    row[6] != null ? ((Number) row[6]).longValue() : null, // Used Space (MB)
-                    row[7] != null ? ((Number) row[7]).longValue() : null, // Total Space (MB)
-                    row[8] != null ? ((Number) row[8]).longValue() : null  // Usage Percentage
-            );
-            details.add(detail);
+            try {
+                TableSpace detail = new TableSpace(
+                        row[0] != null ? ((Number) row[0]).longValue() : null,
+                        row[1] != null ? parseTimestamp(row[1]) : null,
+                        row[2] != null ? row[2].toString() : null,
+                        row[3] != null ? row[3].toString() : null,
+                        row[4] != null ? row[4].toString() : null,
+                        row[5] != null ? ((Number) row[5]).longValue() : null,
+                        row[6] != null ? ((Number) row[6]).longValue() : null,
+                        row[7] != null ? ((Number) row[7]).longValue() : null,
+                        row[8] != null ? ((Number) row[8]).longValue() : null
+                );
+                details.add(detail);
+            } catch (Exception e) {
+                logger.error("Error processing high usage tablespace for SID {}: {}", sid, e.getMessage(), e);
+            }
         }
+
+        logger.info("Found {} high usage tablespaces for SID: {}", details.size(), sid);
         return details;
     }
 
-    /**
-     * Retrieves a list of SIDs where at least one tablespace has usage ≥ 70%.
-     * Helps in identifying databases at risk of high storage consumption.
-     * @return List of TableSpace objects meeting the high-usage threshold.
-     */
     public List<TableSpace> getSIDsWithHighUsageThreshold() {
+        logger.info("Fetching SIDs with high tablespace usage (≥70%)...");
         List<TableSpace> allSIDs = tableSpaceRepository.findAll();
         List<TableSpace> filteredSIDs = new ArrayList<>();
 
         for (TableSpace tablespace : allSIDs) {
-            // Fetch tablespaces where usage is above 70% for the current SID
             List<TableSpace> highUsageTablespaces = tableSpaceRepository.findBySidAndUsageAboveThreshold(tablespace.getSid(), 70);
             if (!highUsageTablespaces.isEmpty()) {
-                filteredSIDs.add(tablespace); // Add only if usage ≥ 70%
+                filteredSIDs.add(tablespace);
+                logger.info("SID {} has {} high usage tablespaces.", tablespace.getSid(), highUsageTablespaces.size());
             }
         }
+
+        logger.info("Total SIDs with high usage: {}", filteredSIDs.size());
         return filteredSIDs;
     }
 }
