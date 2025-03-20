@@ -54,7 +54,7 @@ public interface TableSpaceRepository extends JpaRepository<TableSpace, Long> {
             """, nativeQuery = true)
     List<Object[]> findLatestTableSpaceDetails(@Param("hostname") String hostname, @Param("sid") String sid);
 
-    // Retrieves tablespaces where usage is above 70% for a given SID, ordered by highest usage percentage.
+    // Retrieves tablespaces where usage is above 80% for a given SID, ordered by highest usage percentage.
     @Query(value = """
             SELECT ts.id, ts.timestamp, ts.hostname, ts.sid, ts.tablespace_name, 
                    ts.free_space_mb, ts.used_space_mb, ts.total_space_mb, ts.usage_pct
@@ -69,7 +69,7 @@ public interface TableSpaceRepository extends JpaRepository<TableSpace, Long> {
                      AND ts.tablespace_name = latest.tablespace_name
                      AND ts.timestamp = latest.latest_timestamp
             WHERE ts.sid = :sid
-            AND ts.usage_pct > 70  -- Filter for tablespaces exceeding 70% usage
+            AND ts.usage_pct > 80  -- Filter for tablespaces exceeding 80% usage
             ORDER BY ts.usage_pct DESC;
             """, nativeQuery = true)
     List<Object[]> findHighUsageTablespaces(@Param("sid") String sid);

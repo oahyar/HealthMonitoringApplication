@@ -53,7 +53,7 @@ public interface ServerMetricRepository extends JpaRepository<ServerDiskPartitio
             """, nativeQuery = true)
     List<ServerDiskPartition> findLatestFilesystemByHostname(@Param("hostname") String hostname);
 
-    // Retrieves disk partitions for a given hostname where the disk usage exceeds 70%, sorted by usage percentage
+    // Retrieves disk partitions for a given hostname where the disk usage exceeds 80%, sorted by usage percentage
     @Query(value = """
             SELECT sm.id, sm.timestamp, sm.hostname, sm.size_mb, 
                    sm.available_mb, sm.used_mb, sm.usage_pct, sm.mounted_on, sm.filesystem
@@ -68,7 +68,7 @@ public interface ServerMetricRepository extends JpaRepository<ServerDiskPartitio
                      AND sm.filesystem = latest.filesystem 
                      AND sm.timestamp = latest.latest_timestamp
             WHERE sm.hostname = :hostname 
-            AND sm.usage_pct > 70  -- Filter to include only partitions with usage greater than 70%
+            AND sm.usage_pct > 80  -- Filter to include only partitions with usage greater than 70%
             ORDER BY sm.usage_pct DESC;
             """, nativeQuery = true)
     List<ServerDiskPartition> findHighUsageFilesystems(@Param("hostname") String hostname);
