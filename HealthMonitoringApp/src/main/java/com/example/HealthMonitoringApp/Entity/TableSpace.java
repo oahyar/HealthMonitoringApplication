@@ -21,9 +21,17 @@ public class TableSpace implements Serializable {
     private String hostname;
     private String tablespaceName;
     private String sid;
+
+    @Column(name = "free_space_mb")
     private Long freeSpaceMb;
+
+    @Column(name = "used_space_mb")
     private Long usedSpaceMb;
+
+    @Column(name = "total_space_mb")
     private Long totalSpaceMb;
+
+    @Column(name = "usage_pct")
     private Long usagePct;
 
     // ✅ REQUIRED: No-Args Constructor for Hibernate

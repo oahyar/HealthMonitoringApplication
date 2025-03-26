@@ -69,20 +69,5 @@ public class ServerMetricService {
         return result;
     }
 
-    public List<ServerDiskPartition> getServersWithHighUsageThreshold() {
-        logger.info("Fetching servers with high disk usage (≥70%)...");
-        List<ServerDiskPartition> allServers = serverMetricRepository.findAll();
-        List<ServerDiskPartition> filteredServers = new ArrayList<>();
 
-        for (ServerDiskPartition server : allServers) {
-            List<ServerDiskPartition> partitions = serverMetricRepository.findByHostnameAndUsageAboveThreshold(server.getHostname(), 70);
-            if (!partitions.isEmpty()) {
-                filteredServers.add(server);
-                logger.info("Server {} has {} high usage partitions.", server.getHostname(), partitions.size());
-            }
-        }
-
-        logger.info("Total servers with high usage: {}", filteredServers.size());
-        return filteredServers;
-    }
 }

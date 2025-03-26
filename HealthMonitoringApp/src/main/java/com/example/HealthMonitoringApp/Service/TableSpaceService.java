@@ -75,7 +75,7 @@ public class TableSpaceService {
         return details;
     }
 
-    private LocalDateTime parseTimestamp(Object timestamp) {
+    LocalDateTime parseTimestamp(Object timestamp) {
         if (timestamp == null) {
             logger.warn("Received null timestamp for parsing.");
             return null;
@@ -124,20 +124,4 @@ public class TableSpaceService {
         return details;
     }
 
-    public List<TableSpace> getSIDsWithHighUsageThreshold() {
-        logger.info("Fetching SIDs with high tablespace usage (≥70%)...");
-        List<TableSpace> allSIDs = tableSpaceRepository.findAll();
-        List<TableSpace> filteredSIDs = new ArrayList<>();
-
-        for (TableSpace tablespace : allSIDs) {
-            List<TableSpace> highUsageTablespaces = tableSpaceRepository.findBySidAndUsageAboveThreshold(tablespace.getSid(), 70);
-            if (!highUsageTablespaces.isEmpty()) {
-                filteredSIDs.add(tablespace);
-                logger.info("SID {} has {} high usage tablespaces.", tablespace.getSid(), highUsageTablespaces.size());
-            }
-        }
-
-        logger.info("Total SIDs with high usage: {}", filteredSIDs.size());
-        return filteredSIDs;
-    }
 }
