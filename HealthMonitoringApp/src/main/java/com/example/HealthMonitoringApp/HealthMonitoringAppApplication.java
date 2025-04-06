@@ -18,12 +18,10 @@ public class HealthMonitoringAppApplication implements CommandLineRunner {
 
     public static void main(String[] args) {
         SpringApplication.run(HealthMonitoringAppApplication.class, args);
-        System.out.println("✅ Health Monitoring App is running...");
     }
 
     @Override
     public void run(String... args) throws Exception {
-
     }
 
 

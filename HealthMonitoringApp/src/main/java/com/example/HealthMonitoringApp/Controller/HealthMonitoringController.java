@@ -1,21 +1,30 @@
 package com.example.HealthMonitoringApp.Controller;
 
+import com.example.HealthMonitoringApp.Entity.JobLog;
 import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
+import com.example.HealthMonitoringApp.Repository.JobLogRepository;
+import com.example.HealthMonitoringApp.Service.JobMonitorService;
 import com.example.HealthMonitoringApp.Service.ServerMetricService;
 import com.example.HealthMonitoringApp.Service.TableSpaceService;
 import com.example.HealthMonitoringApp.dto.AggregatedSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
+import com.example.HealthMonitoringApp.dto.JobStatusDTO;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -26,6 +35,16 @@ public class HealthMonitoringController {
 
     @Autowired
     private TableSpaceService tableSpaceService;
+
+    @Autowired
+    private JobMonitorService jobMonitorService;
+
+    @Autowired
+    private JobLogRepository jobLogRepository;
+
+    @Autowired
+    private Scheduler scheduler;
+
 
     /**
      * ✅ Load Dashboard Page with Filtered Data
@@ -131,5 +150,67 @@ public class HealthMonitoringController {
         return tableSpaceService.getHighUsageTablespaces(sid);
     }
 
+    @GetMapping("/{jobName}/status")
+    @ResponseBody
+    public ResponseEntity<String> getJobStatus(
+            @PathVariable String jobName,
+            @RequestParam(defaultValue = "DEFAULT") String group) {
+        try {
+            String status = jobMonitorService.getJobStatus(jobName, group);
+            return ResponseEntity.ok(status);
+        } catch (SchedulerException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
+    }
 
+    @GetMapping("/{jobName}")
+    @ResponseBody
+    public List<JobLog> getLogs(@PathVariable String jobName) {
+        return jobLogRepository.findByJobName(jobName);
+    }
+
+    @GetMapping("/status/{jobName}")
+    public JobLog getLatestStatus(@PathVariable String jobName) {
+        return jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
+    }
+
+    @GetMapping("/status-summary")
+    @ResponseBody
+    public List<JobStatusDTO> getJobStatusSummary() throws SchedulerException {
+        List<String> monitoredJobs = List.of("fakeJob1", "fakeJob2", "fakeJob3");
+
+        List<JobStatusDTO> summaries = new ArrayList<>();
+
+        for (String jobName : monitoredJobs) {
+            // Get last log entry
+            JobLog latest = jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
+            LocalDateTime nextRunTime = getNextFireTime(jobName);
+
+            JobStatusDTO dto = new JobStatusDTO();
+            dto.setJobName(jobName);
+            dto.setLastStatus(latest != null ? latest.getStatus() : "UNKNOWN");
+            dto.setLastRunTime(latest != null ? latest.getStartTime() : null);
+            dto.setNextRunTime(nextRunTime);
+
+            summaries.add(dto);
+        }
+
+        return summaries;
+    }
+
+    private LocalDateTime getNextFireTime(String jobName) throws SchedulerException {
+        List<? extends Trigger> triggers = scheduler.getTriggersOfJob(new JobKey(jobName));
+        if (!triggers.isEmpty()) {
+            Date nextFire = triggers.get(0).getNextFireTime();
+            return nextFire != null ? LocalDateTime.ofInstant(nextFire.toInstant(), ZoneId.systemDefault()) : null;
+        }
+        return null;
+    }
+
+    @GetMapping("/history/{jobName}")
+    @ResponseBody
+    public List<JobLog> getJobHistory(@PathVariable String jobName) {
+        return jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
+    }
 }
