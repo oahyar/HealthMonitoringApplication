@@ -176,9 +176,8 @@ public class HealthMonitoringController {
     }
 
     @GetMapping("/status-summary")
-    @ResponseBody
-    public List<JobStatusDTO> getJobStatusSummary() throws SchedulerException {
-        List<String> monitoredJobs = List.of("fakeJob1", "fakeJob2", "fakeJob3");
+    public String getJobStatusSummary(Model model) throws SchedulerException {
+        List<String> monitoredJobs = List.of("fakeJob1", "fakeJob2", "fakeJob3", "fakeJob4");
 
         List<JobStatusDTO> summaries = new ArrayList<>();
 
@@ -196,7 +195,8 @@ public class HealthMonitoringController {
             summaries.add(dto);
         }
 
-        return summaries;
+        model.addAttribute("jobs", summaries);
+        return "job_status";
     }
 
     private LocalDateTime getNextFireTime(String jobName) throws SchedulerException {
@@ -213,4 +213,5 @@ public class HealthMonitoringController {
     public List<JobLog> getJobHistory(@PathVariable String jobName) {
         return jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
     }
+
 }

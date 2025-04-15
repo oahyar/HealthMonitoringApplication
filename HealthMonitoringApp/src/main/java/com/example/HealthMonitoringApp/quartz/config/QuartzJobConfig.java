@@ -2,9 +2,7 @@ package com.example.HealthMonitoringApp.quartz.config;
 
 import com.example.HealthMonitoringApp.Entity.JobLog;
 import com.example.HealthMonitoringApp.Repository.JobLogRepository;
-import com.example.HealthMonitoringApp.quartz.jobs.FakeJob;
-import com.example.HealthMonitoringApp.quartz.jobs.FakeJob2;
-import com.example.HealthMonitoringApp.quartz.jobs.FakeJob3;
+import com.example.HealthMonitoringApp.quartz.jobs.*;
 import jakarta.annotation.PostConstruct;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +71,44 @@ public class QuartzJobConfig {
                 .withIdentity("fakeTrigger3")
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule()
                         .withIntervalInMinutes(10)
+                        .repeatForever())
+                .build();
+    }
+
+    @Bean
+    public JobDetail fakeJob4Detail() {
+        return JobBuilder.newJob(FakeJob4.class)
+                .withIdentity("fakeJob4")
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    public Trigger fakeJob4Trigger() {
+        return TriggerBuilder.newTrigger()
+                .forJob(fakeJob4Detail())
+                .withIdentity("fakeTrigger4")
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInMinutes(2)
+                        .repeatForever())
+                .build();
+    }
+
+    @Bean
+    public JobDetail cleanupJobDetail() {
+        return JobBuilder.newJob(JobLogCleanupJob.class)
+                .withIdentity("jobLogCleanup")
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    public Trigger cleanupJobTrigger() {
+        return TriggerBuilder.newTrigger()
+                .forJob(cleanupJobDetail())
+                .withIdentity("jobLogCleanupTrigger")
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInHours(24 * 14) // every 14 days
                         .repeatForever())
                 .build();
     }

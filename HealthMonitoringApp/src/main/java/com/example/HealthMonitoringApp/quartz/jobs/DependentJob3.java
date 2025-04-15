@@ -5,7 +5,9 @@ import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 @Component
@@ -36,17 +38,19 @@ public class DependentJob3 implements Job {
                 // Retry logic: reschedule the job immediately with retryCount++
                 JobDataMap retryData = new JobDataMap();
                 retryData.put("retryCount", retryCount + 1);
+                String baseJobName = jobName.split("_retry_")[0]; // original job name
+                String retryJobName = baseJobName + "_retry_" + (retryCount + 1);
 
                 JobDetail retryJob = JobBuilder.newJob(DependentJob3.class)
-                        .withIdentity(jobName + "_retry_" + (retryCount + 1))
-                        .usingJobData(retryData)
+                        .withIdentity(retryJobName)
+                        .usingJobData("retryCount", retryCount + 1)
                         .storeDurably()
                         .build();
 
                 Trigger retryTrigger = TriggerBuilder.newTrigger()
                         .forJob(retryJob)
                         .withIdentity("trigger_retry_" + UUID.randomUUID())
-                        .startNow()
+                        .startAt(Date.from(Instant.now().plusSeconds(5))) // ⏱ 5-second delay
                         .build();
 
                 try {
