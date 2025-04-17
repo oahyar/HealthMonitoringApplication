@@ -9,6 +9,7 @@ import com.example.HealthMonitoringApp.Service.ServerMetricService;
 import com.example.HealthMonitoringApp.Service.TableSpaceService;
 import com.example.HealthMonitoringApp.dto.AggregatedSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
+import com.example.HealthMonitoringApp.dto.JobDependencyDTO;
 import com.example.HealthMonitoringApp.dto.JobStatusDTO;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
@@ -26,6 +27,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 public class HealthMonitoringController {
@@ -177,7 +179,11 @@ public class HealthMonitoringController {
 
     @GetMapping("/status-summary")
     public String getJobStatusSummary(Model model) throws SchedulerException {
-        List<String> monitoredJobs = List.of("fakeJob1", "fakeJob2", "fakeJob3", "fakeJob4");
+        List<String> allJobs = jobLogRepository.findDistinctJobNames();
+
+        List<String> monitoredJobs = allJobs.stream()
+                .filter(name -> name.matches("Job[0-9]+") || name.equals("ProcessingJob") || name.equals("AlternateJob") || name.equals("WaitingJob"))// Matches Job1, Job2, Job3...
+                .collect(Collectors.toList());
 
         List<JobStatusDTO> summaries = new ArrayList<>();
 
@@ -212,6 +218,12 @@ public class HealthMonitoringController {
     @ResponseBody
     public List<JobLog> getJobHistory(@PathVariable String jobName) {
         return jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
+    }
+
+    @GetMapping("/api/job-graph")
+    @ResponseBody
+    public List<JobDependencyDTO> getJobGraph(@RequestParam String jobName) {
+        return jobMonitorService.getJobGraphElements(jobName);
     }
 
 }

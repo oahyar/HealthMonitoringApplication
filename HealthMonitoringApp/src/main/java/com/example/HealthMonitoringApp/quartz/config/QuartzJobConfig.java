@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 @Configuration
 public class QuartzJobConfig {
@@ -21,7 +23,7 @@ public class QuartzJobConfig {
     @Bean
     public JobDetail fakeJobDetail() {
         return JobBuilder.newJob(FakeJob.class)
-                .withIdentity("fakeJob1")
+                .withIdentity("Job1")
                 .storeDurably()
                 .build();
     }
@@ -40,7 +42,7 @@ public class QuartzJobConfig {
     @Bean
     public JobDetail fakeJob2Detail() {
         return JobBuilder.newJob(FakeJob2.class)
-                .withIdentity("fakeJob2")
+                .withIdentity("Job2")
                 .storeDurably()
                 .build();
     }
@@ -59,7 +61,7 @@ public class QuartzJobConfig {
     @Bean
     public JobDetail fakeJob3Detail() {
         return JobBuilder.newJob(FakeJob3.class)
-                .withIdentity("fakeJob3")
+                .withIdentity("Job3")
                 .storeDurably()
                 .build();
     }
@@ -78,7 +80,7 @@ public class QuartzJobConfig {
     @Bean
     public JobDetail fakeJob4Detail() {
         return JobBuilder.newJob(FakeJob4.class)
-                .withIdentity("fakeJob4")
+                .withIdentity("Job4")
                 .storeDurably()
                 .build();
     }
@@ -110,6 +112,67 @@ public class QuartzJobConfig {
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule()
                         .withIntervalInHours(24 * 14) // every 14 days
                         .repeatForever())
+                .build();
+    }
+
+    @Bean
+    public JobDetail processingJobDetail() {
+        JobDataMap dataMap = new JobDataMap();
+        dataMap.put("input", "hello world"); // this is your input value
+
+        return JobBuilder.newJob(ProcessingJob.class)
+                .withIdentity("ProcessingJob")
+                .usingJobData(dataMap)
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    public Trigger processingJobTrigger() {
+        return TriggerBuilder.newTrigger()
+                .forJob(processingJobDetail())
+                .withIdentity("processingTrigger")
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInMinutes(15)
+                        .repeatForever())
+                .build();
+    }
+
+    @Bean
+    public JobDetail alternatingJobDetail() {
+        return JobBuilder.newJob(AlternateJob.class)
+                .withIdentity("AlternateJob")
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    public Trigger alternatingJobTrigger() {
+        return TriggerBuilder.newTrigger()
+                .forJob(alternatingJobDetail())
+                .withIdentity("AlternateTrigger")
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInSeconds(30)
+                        .repeatForever())
+                .build();
+    }
+
+    @Bean
+    public JobDetail waitingJobDetail() {
+        return JobBuilder.newJob(WaitingJob.class)
+                .withIdentity("WaitingJob")
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    public Trigger waitingJobTrigger() {
+        return TriggerBuilder.newTrigger()
+                .forJob(waitingJobDetail())
+                .withIdentity("WaitingTrigger")
+                .startAt(Date.from(LocalDateTime.now().plusHours(1)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()))
                 .build();
     }
 

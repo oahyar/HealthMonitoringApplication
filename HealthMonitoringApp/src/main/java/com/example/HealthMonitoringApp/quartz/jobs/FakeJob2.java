@@ -27,7 +27,7 @@ public class FakeJob2 implements Job {
         String dependentJobName = "dependentJob2";
         LocalDateTime now = LocalDateTime.now();
 
-        logger.info("🟢 FakeJob2 executing at {}", now);
+        logger.info("Job2 executing at {}", now);
 
         try {
             // Log WAITING for the next round

@@ -19,8 +19,8 @@ public class FakeJob4 implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        logger.warn("FakeJob4 encountered a setup failure, aborting...");
+        logger.warn("Job4 encountered a setup failure, aborting...");
 
-        throw new JobExecutionException("Simulated failure in FakeJob4 (prevents triggering dependent job)");
+        throw new JobExecutionException("Simulated failure in Job4 (prevents triggering dependent job)");
     }
 }

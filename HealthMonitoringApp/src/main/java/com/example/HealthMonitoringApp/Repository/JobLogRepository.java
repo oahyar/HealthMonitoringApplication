@@ -21,4 +21,9 @@ public interface JobLogRepository extends JpaRepository<JobLog, Long> {
     @Modifying
     @Query("DELETE FROM JobLog j WHERE j.startTime < :cutoff")
     int deleteByStartTimeBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    @Query("SELECT DISTINCT j.jobName FROM JobLog j")
+    List<String> findDistinctJobNames();
+
+    boolean existsByJobName(String jobName);
 }
