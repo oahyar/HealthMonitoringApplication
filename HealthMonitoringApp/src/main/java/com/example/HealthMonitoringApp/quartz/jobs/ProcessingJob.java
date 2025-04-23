@@ -6,6 +6,8 @@ import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,7 @@ import java.time.LocalDateTime;
 
 @Component
 public class ProcessingJob implements Job {
+    private static final Logger logger = LoggerFactory.getLogger(ProcessingJob.class);
     @Autowired
     private JobLogRepository jobLogRepository;
 
@@ -34,6 +37,7 @@ public class ProcessingJob implements Job {
             output = "";
             status = "FAILED";
             message = "Error processing input: " + input;
+            logger.error("ProcessingJob failed for input {}: {}", input, e.getMessage(), e);
         }
 
         LocalDateTime endTime = LocalDateTime.now();
@@ -46,7 +50,6 @@ public class ProcessingJob implements Job {
         log.setMessage(message);
 
         jobLogRepository.save(log);
-
-        System.out.println("✅ Job result saved: " + message);
+        logger.debug("JobLog saved: {}", log);
     }
 }

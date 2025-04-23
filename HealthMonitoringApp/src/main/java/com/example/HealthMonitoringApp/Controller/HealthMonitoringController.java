@@ -16,11 +16,15 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.core.io.ByteArrayResource;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -182,7 +186,9 @@ public class HealthMonitoringController {
         List<String> allJobs = jobLogRepository.findDistinctJobNames();
 
         List<String> monitoredJobs = allJobs.stream()
-                .filter(name -> name.matches("Job[0-9]+") || name.equals("ProcessingJob") || name.equals("AlternateJob") || name.equals("WaitingJob"))// Matches Job1, Job2, Job3...
+                .filter(
+                        name -> !name.isEmpty() && Character.isUpperCase(name.charAt(0))
+                )
                 .collect(Collectors.toList());
 
         List<JobStatusDTO> summaries = new ArrayList<>();
@@ -225,5 +231,28 @@ public class HealthMonitoringController {
     public List<JobDependencyDTO> getJobGraph(@RequestParam String jobName) {
         return jobMonitorService.getJobGraphElements(jobName);
     }
+
+    // Job logs
+    @GetMapping("/logs/download/{jobName}")
+    public ResponseEntity<Resource> downloadLogs(@PathVariable String jobName) {
+        List<JobLog> logs = jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
+
+        StringBuilder sb = new StringBuilder();
+        for (JobLog log : logs) {
+            sb.append("Job: ").append(log.getJobName()).append("\n")
+                    .append("Status: ").append(log.getStatus()).append("\n")
+                    .append("Start Time: ").append(log.getStartTime()).append("\n")
+                    .append("End Time: ").append(log.getEndTime()).append("\n")
+                    .append("Message: ").append(log.getMessage()).append("\n\n");
+        }
+
+        ByteArrayResource resource = new ByteArrayResource(sb.toString().getBytes());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + jobName + "_logs.txt")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(resource);
+    }
+
 
 }

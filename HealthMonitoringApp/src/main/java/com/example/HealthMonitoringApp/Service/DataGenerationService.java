@@ -26,7 +26,7 @@ public class DataGenerationService {
         this.tableSpaceRepository = tableSpaceRepository;
     }
 
-    @Scheduled(fixedRate = 900000) // Every 15 seconds
+    @Scheduled(fixedRate = 30000) // Every 30 seconds
     public void updateMockDiskUsage() {
         logger.info("Updating mock disk space data...");
 
@@ -60,7 +60,7 @@ public class DataGenerationService {
         logger.info("Mock disk space data updated successfully!");
     }
 
-    @Scheduled(fixedRate = 900000) // Every 15 seconds
+    @Scheduled(fixedRate = 30000) // Every 30 seconds
     public void updateMockTableSpaceUsage() {
         logger.info("Updating mock tablespace data...");
 

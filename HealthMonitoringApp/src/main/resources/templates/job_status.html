@@ -27,43 +27,76 @@
         </div>
     </div>
 </nav>
-<div class="container mt-3">
-    <h2>Job Status Dashboard</h2>
-    <div class="d-flex align-items-center gap-2">
-        <!-- ✅ Refresh Button -->
-        <a id="refresh-btn" href="/status-summary" class="btn btn-primary">Refresh</a>
-        <p id="last-refresh" class="mb-0">Last Refreshed: --</p>
+<!-- Job Status Dashboard -->
+<div class="container mt-4">
+    <div class="card mb-4">
+        <!-- Dark header -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Job Status Dashboard</h5>
+            <div class="d-flex align-items-center gap-2">
+                <a id="refresh-btn" href="/status-summary" class="btn btn-primary btn-sm">Refresh</a>
+                <small id="last-refresh" class="text-white"
+                       th:text="'Last Refreshed: ' + ${lastRefreshed}">
+                    Last Refreshed: --
+                </small>
+            </div>
+        </div>
+
+        <!-- White body -->
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-sm mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Job Name</th>
+                        <th>Status</th>
+                        <th>Last Run Time</th>
+                        <th>Next Run Time</th>
+                        <th class="text-center">History</th>
+                        <th class="text-center">Dependency Graph</th>
+                        <th class="text-center">Logs</th>
+                    </tr>
+                    </thead>
+
+                    <!-- Optional empty state -->
+                    <tbody th:if="${#lists.isEmpty(jobs)}">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-3">
+                            No jobs to display
+                        </td>
+                    </tr>
+                    </tbody>
+
+                    <!-- Data rows -->
+                    <tbody th:unless="${#lists.isEmpty(jobs)}">
+                    <tr th:each="job : ${jobs}">
+                        <td th:text="${job.jobName}">ExampleJob</td>
+                        <td th:text="${job.lastStatus}">SUCCESS</td>
+                        <td th:text="${job.lastRunTime}">2025-04-23 10:00:00</td>
+                        <td th:text="${job.nextRunTime}">2025-04-23 10:30:00</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-primary btn-sm retrieve-data-btn">
+                                More Details
+                            </button>
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-success btn-sm view-graph-btn"
+                                    th:attr="data-jobname=${job.jobName}">
+                                View Graph
+                            </button>
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-success btn-sm view-logs-btn"
+                                    th:attr="data-jobname=${job.jobName}">
+                                View Logs
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <table class="table table-dark mt-3">
-        <thead>
-        <tr>
-            <th>Job Name</th>
-            <th>Status</th>
-            <th>Last Run Time</th>
-            <th>Next Run Time</th>
-            <th>History</th>
-            <th>Dependency Graph</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="job : ${jobs}">
-            <td th:text="${job.jobName}"></td>
-            <td th:text="${job.lastStatus}"></td>
-            <td th:text="${job.lastRunTime}"></td>
-            <td th:text="${job.nextRunTime}"></td>
-            <td>
-                <button type="button" class="btn btn-primary retrieve-data-btn">
-                    More Details
-                </button>
-            </td>
-            <td>
-                <button type="button" class="btn btn-success view-graph-btn" th:attr="data-jobname=${job.jobName}">
-                    View Graph
-                </button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
 </div>
 
 <!-- ✅ Modal for Showing Details -->
@@ -88,12 +121,57 @@
         </div>
     </div>
 </div>
+
 <!-- Job Dependency Graph -->
-<div class="container mt-5" id="graphContainer" style="display: none;">
-    <h3>Job Dependency Graph</h3>
-    <div id="jobGraph" style="height: 600px; border: 1px solid #ccc;"></div>
+<div
+        class="container mt-5 position-relative"
+        id="graphContainer"
+        style="display: none;">
+
+    <!-- Header with close button -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="mb-0">Job Dependency Graph</h3>
+        <!-- Bootstrap close icon; will hide the container -->
+        <button
+                type="button"
+                class="btn-close"
+                aria-label="Close"
+                onclick="closeGraph()">
+        </button>
+    </div>
+
+    <!-- Your actual graph canvas -->
+    <div
+            id="jobGraph"
+            style="height: 600px; border: 1px solid #ccc;">
+    </div>
 </div>
-<div id="tooltip" style="display:none; position:absolute; background:#333; color:#fff; padding:5px 10px; border-radius:4px; font-size:14px; z-index:1000;"></div>
+
+<!-- Tooltip stays the same -->
+<div
+        id="tooltip"
+        style="display:none; position:absolute; background:#333;
+         color:#fff; padding:5px 10px; border-radius:4px;
+         font-size:14px; z-index:1000;">
+</div>
+<!-- Log Modal -->
+<div class="modal fade" id="logModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Logs for <span id="logJobName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="logContent" style="white-space: pre-wrap; font-family: monospace;"></pre>
+            </div>
+            <div class="modal-footer">
+                <a id="downloadLogBtn" class="btn btn-primary" target="_blank">Download Logs</a>
+                <button class="btn btn-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -257,6 +335,32 @@
             });
         });
     });
+
+    //Download logs
+    document.querySelectorAll('.view-logs-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const jobName = this.getAttribute('data-jobname');
+            document.getElementById('logJobName').innerText = jobName;
+            document.getElementById('downloadLogBtn').href = `/logs/download/${jobName}`;
+
+            fetch(`/history/${jobName}`)
+                .then(res => res.json())
+                .then(logs => {
+                    const textLogs = logs.map(log => {
+                        return `[${log.startTime || '-'} - ${log.endTime || '-'}] ${log.status}: ${log.message || ''}`;
+                    }).join('\n');
+
+                    document.getElementById('logContent').textContent = textLogs;
+
+                    new bootstrap.Modal(document.getElementById('logModal')).show();
+                });
+        });
+    });
+
+    //Close graph
+    function closeGraph() {
+        document.getElementById('graphContainer').style.display = 'none';
+    }
 </script>
 </body>
 </html>

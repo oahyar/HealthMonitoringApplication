@@ -170,7 +170,7 @@ public class QuartzJobConfig {
         return TriggerBuilder.newTrigger()
                 .forJob(waitingJobDetail())
                 .withIdentity("WaitingTrigger")
-                .startAt(Date.from(LocalDateTime.now().plusHours(1)
+                .startAt(Date.from(LocalDateTime.now().plusYears(1)
                         .atZone(ZoneId.systemDefault())
                         .toInstant()))
                 .build();
