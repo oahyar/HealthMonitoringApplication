@@ -16,7 +16,9 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,8 +26,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.core.io.ByteArrayResource;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -51,59 +53,56 @@ public class HealthMonitoringController {
     @Autowired
     private Scheduler scheduler;
 
-
     /**
-     * ✅ Load Dashboard Page with Filtered Data
-     * - Displays servers with **high disk usage** (>=70%) only.
-     * - Displays tablespaces with **high usage partitions** (>=70%) only.
+     * Render the main dashboard page.
+     * Adds overall and high‐usage metrics for disks and tablespaces to the model.
      */
     @GetMapping("/dashboard")
     public String showDashboard(String hostname, String sid, Model model) {
-        // ✅ Load all disk space and tablespace usage
+        // Add all aggregated disk metrics
         model.addAttribute("diskUsages", serverMetricService.getAggregatedSpaceMetrics());
+        // Add all aggregated tablespace metrics
         model.addAttribute("tableUsages", tableSpaceService.getAggregatedTableSpaceMetrics());
 
-        // ✅ Filter Servers: Only include those with high-usage filesystems
+        // Filter servers to only those with at least one high‐usage filesystem
         List<AggregatedSpaceMetrics> allServers = serverMetricService.getAggregatedSpaceMetrics();
         List<AggregatedSpaceMetrics> filteredServers = new ArrayList<>();
-
         for (AggregatedSpaceMetrics server : allServers) {
-            List<ServerDiskPartition> highUsageFiles = serverMetricService.getHighUsageFilesystems(server.getHostname());
+            List<ServerDiskPartition> highUsageFiles =
+                    serverMetricService.getHighUsageFilesystems(server.getHostname());
             if (!highUsageFiles.isEmpty()) {
-                filteredServers.add(server); // ✅ Only add if server has high-usage filesystems
+                filteredServers.add(server);
             }
         }
         model.addAttribute("highUsageServers", filteredServers);
-        model.addAttribute("highUsageFile", serverMetricService.getHighUsageFilesystems(hostname));
 
-        // ✅ Filter Tablespaces: Only include those with high-usage partitions
-        List<AggregatedTableSpaceMetrics> allTableSpaces = tableSpaceService.getAggregatedTableSpaceMetrics();
+        // Filter tablespaces to only those with high‐usage partitions
+        List<AggregatedTableSpaceMetrics> allTableSpaces =
+                tableSpaceService.getAggregatedTableSpaceMetrics();
         List<AggregatedTableSpaceMetrics> filteredTableSpaces = new ArrayList<>();
-
-        for (AggregatedTableSpaceMetrics tablespace : allTableSpaces) {
-            List<TableSpace> highUsageTables = tableSpaceService.getHighUsageTablespaces(tablespace.getSid());
+        for (AggregatedTableSpaceMetrics ts : allTableSpaces) {
+            List<TableSpace> highUsageTables =
+                    tableSpaceService.getHighUsageTablespaces(ts.getSid());
             if (!highUsageTables.isEmpty()) {
-                filteredTableSpaces.add(tablespace); // ✅ Only add if at least one tablespace exceeds 70%
+                filteredTableSpaces.add(ts);
             }
         }
         model.addAttribute("highUsageDb", filteredTableSpaces);
 
-        return "dashboard"; // ✅ Render Thymeleaf "dashboard.html" view
+        return "dashboard";
     }
 
     /**
-     * ✅ Retrieve **Disk Space Details** for a Specific Hostname (AJAX Call)
-     * - Used in frontend to fetch details dynamically.
+     * AJAX endpoint: fetch detailed disk partitions for a specific host.
      */
     @GetMapping("/dashboard/getDetailsByHostname")
     @ResponseBody
     public List<ServerDiskPartition> getDetailsByHostname(@RequestParam String hostname) {
-        System.out.println("Fetching details for Hostname: " + hostname);
         return serverMetricService.getDiskDetailByHostname(hostname);
     }
 
     /**
-     * ✅ Retrieve **Aggregated Space Metrics** (All Servers)
+     * API endpoint: return all aggregated disk metrics.
      */
     @GetMapping("/aggregated-space")
     @ResponseBody
@@ -112,7 +111,7 @@ public class HealthMonitoringController {
     }
 
     /**
-     * ✅ Retrieve **Latest Filesystem Data** for a Given Hostname
+     * API endpoint: return latest filesystem details for a given hostname.
      */
     @GetMapping("/latest-filesystem/{hostname}")
     @ResponseBody
@@ -121,7 +120,7 @@ public class HealthMonitoringController {
     }
 
     /**
-     * ✅ Retrieve **Aggregated Tablespace Metrics** (All Tablespaces)
+     * API endpoint: return all aggregated tablespace metrics.
      */
     @GetMapping("/aggregated-tablespace")
     @ResponseBody
@@ -130,16 +129,18 @@ public class HealthMonitoringController {
     }
 
     /**
-     * ✅ Retrieve **Latest Tablespace Data** for a Given Hostname and SID
+     * API endpoint: return latest tablespace details for a given host and SID.
      */
     @GetMapping("/latest-tablespace/{hostname}/{sid}")
     @ResponseBody
-    public List<TableSpace> getLatestTableSpaceByHostname(@PathVariable String hostname, @PathVariable String sid) {
+    public List<TableSpace> getLatestTableSpaceByHostname(
+            @PathVariable String hostname,
+            @PathVariable String sid) {
         return tableSpaceService.getLatestTableSpaceDetails(hostname, sid);
     }
 
     /**
-     * ✅ Retrieve **High-Usage Filesystems** (Above 70%) for a Given Hostname
+     * API endpoint: return high‐usage filesystems for a given hostname.
      */
     @GetMapping("/high-usage-filesystems/{hostname}")
     @ResponseBody
@@ -148,7 +149,7 @@ public class HealthMonitoringController {
     }
 
     /**
-     * ✅ Retrieve **High-Usage Tablespaces** (Above 70%) for a Given SID
+     * API endpoint: return high‐usage tablespaces for a given SID.
      */
     @GetMapping("/high-usage-db/{sid}")
     @ResponseBody
@@ -156,6 +157,9 @@ public class HealthMonitoringController {
         return tableSpaceService.getHighUsageTablespaces(sid);
     }
 
+    /**
+     * API endpoint: get current status of a Quartz job by name (and optional group).
+     */
     @GetMapping("/{jobName}/status")
     @ResponseBody
     public ResponseEntity<String> getJobStatus(
@@ -170,39 +174,50 @@ public class HealthMonitoringController {
         }
     }
 
+    /**
+     * API endpoint: fetch all log entries for a given job name.
+     */
     @GetMapping("/{jobName}")
     @ResponseBody
     public List<JobLog> getLogs(@PathVariable String jobName) {
         return jobLogRepository.findByJobName(jobName);
     }
 
+    /**
+     * API endpoint: fetch the most recent log entry for a given job.
+     */
     @GetMapping("/status/{jobName}")
+    @ResponseBody
     public JobLog getLatestStatus(@PathVariable String jobName) {
         return jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
     }
 
+    /**
+     * Render the job status summary page.
+     * Shows each monitored job’s last run and its next scheduled fire time.
+     */
     @GetMapping("/status-summary")
     public String getJobStatusSummary(Model model) throws SchedulerException {
+        // Gather distinct job names from logs
         List<String> allJobs = jobLogRepository.findDistinctJobNames();
 
+        // Filter out any names that don’t start with uppercase (non‐monitored)
         List<String> monitoredJobs = allJobs.stream()
-                .filter(
-                        name -> !name.isEmpty() && Character.isUpperCase(name.charAt(0))
-                )
+                .filter(name -> !name.isEmpty() && Character.isUpperCase(name.charAt(0)))
                 .collect(Collectors.toList());
 
+        // Build DTOs for each job
         List<JobStatusDTO> summaries = new ArrayList<>();
-
         for (String jobName : monitoredJobs) {
-            // Get last log entry
-            JobLog latest = jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
-            LocalDateTime nextRunTime = getNextFireTime(jobName);
+            JobLog latest =
+                    jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
+            LocalDateTime nextRun = getNextFireTime(jobName);
 
             JobStatusDTO dto = new JobStatusDTO();
             dto.setJobName(jobName);
             dto.setLastStatus(latest != null ? latest.getStatus() : "UNKNOWN");
             dto.setLastRunTime(latest != null ? latest.getStartTime() : null);
-            dto.setNextRunTime(nextRunTime);
+            dto.setNextRunTime(nextRun);
 
             summaries.add(dto);
         }
@@ -211,48 +226,75 @@ public class HealthMonitoringController {
         return "job_status";
     }
 
-    private LocalDateTime getNextFireTime(String jobName) throws SchedulerException {
-        List<? extends Trigger> triggers = scheduler.getTriggersOfJob(new JobKey(jobName));
+    /**
+     * Helper to look up the Quartz trigger’s next fire time for a job.
+     */
+    LocalDateTime getNextFireTime(String jobName) throws SchedulerException {
+        List<? extends Trigger> triggers =
+                scheduler.getTriggersOfJob(new JobKey(jobName));
         if (!triggers.isEmpty()) {
             Date nextFire = triggers.get(0).getNextFireTime();
-            return nextFire != null ? LocalDateTime.ofInstant(nextFire.toInstant(), ZoneId.systemDefault()) : null;
+            return nextFire != null
+                    ? LocalDateTime.ofInstant(nextFire.toInstant(),
+                    ZoneId.systemDefault())
+                    : null;
         }
         return null;
     }
 
+    /**
+     * API endpoint: return job execution history including any dependent‐job retries.
+     */
     @GetMapping("/history/{jobName}")
     @ResponseBody
     public List<JobLog> getJobHistory(@PathVariable String jobName) {
-        return jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
+        return jobMonitorService.getHistoryIncludingDependent(jobName);
     }
 
+    /**
+     * API endpoint: return the job dependency graph data.
+     */
     @GetMapping("/api/job-graph")
     @ResponseBody
     public List<JobDependencyDTO> getJobGraph(@RequestParam String jobName) {
         return jobMonitorService.getJobGraphElements(jobName);
     }
 
-    // Job logs
+    /**
+     * API endpoint: download history as a text file.
+     * Includes both main and dependent‐job logs, formatted in single lines.
+     */
     @GetMapping("/logs/download/{jobName}")
     public ResponseEntity<Resource> downloadLogs(@PathVariable String jobName) {
-        List<JobLog> logs = jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
+        List<JobLog> logs =
+                jobMonitorService.getHistoryIncludingDependent(jobName);
 
         StringBuilder sb = new StringBuilder();
         for (JobLog log : logs) {
-            sb.append("Job: ").append(log.getJobName()).append("\n")
-                    .append("Status: ").append(log.getStatus()).append("\n")
-                    .append("Start Time: ").append(log.getStartTime()).append("\n")
-                    .append("End Time: ").append(log.getEndTime()).append("\n")
-                    .append("Message: ").append(log.getMessage()).append("\n\n");
+            sb.append("[")
+                    .append(log.getStartTime())
+                    .append(" - ")
+                    .append(log.getEndTime() != null
+                            ? log.getEndTime()
+                            : "-")
+                    .append("] ")
+                    .append(log.getJobName())
+                    .append(" ")
+                    .append(log.getStatus())
+                    .append(": ")
+                    .append(log.getMessage())
+                    .append("\n");
         }
 
-        ByteArrayResource resource = new ByteArrayResource(sb.toString().getBytes());
+        ByteArrayResource resource =
+                new ByteArrayResource(sb.toString()
+                        .getBytes(StandardCharsets.UTF_8));
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + jobName + "_logs.txt")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment;filename=" + jobName + "_logs.txt")
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(resource);
     }
-
 
 }

@@ -9,10 +9,13 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class JobMonitorService {
@@ -20,12 +23,14 @@ public class JobMonitorService {
     @Autowired
     private JobLogRepository jobLogRepository;
 
+    // Injects the Scheduler (Quartz) instance using ObjectProvider
     private final ObjectProvider<Scheduler> schedulerProvider;
 
     public JobMonitorService(ObjectProvider<Scheduler> schedulerProvider) {
         this.schedulerProvider = schedulerProvider;
     }
 
+    // Returns the current status of a Quartz job
     public String getJobStatus(String jobName, String group) throws SchedulerException {
         Scheduler scheduler = schedulerProvider.getIfAvailable();
 
@@ -48,17 +53,17 @@ public class JobMonitorService {
         return triggerState.name();
     }
 
-    // Clean up job db every 14 days
+    // Deletes job logs older than 14 days from the database
     public int cleanOldLogs() {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(14);
         return jobLogRepository.deleteByStartTimeBefore(cutoff);
     }
 
-    //Dependency Graph
+    // Builds a dependency graph for jobs, returning both job nodes and edge relationships
     public List<JobDependencyDTO> getJobGraphElements(String rootJobName) {
         List<JobDependencyDTO> elements = new ArrayList<>();
 
-        // Define job names and edges manually (could be refactored to be dynamic later)
+        // Hardcoded dependency relationships between jobs
         Map<String, List<String>> dependencyMap = Map.of(
                 "Job1", List.of("dependentJob1"),
                 "Job2", List.of("dependentJob2"),
@@ -69,10 +74,10 @@ public class JobMonitorService {
                 "WaitingJob", List.of("InputFile")
         );
 
+        // Identify relevant jobs to include in the graph
         Set<String> involvedJobs = new HashSet<>();
         involvedJobs.add(rootJobName);
 
-        // Include parent dependencies
         for (Map.Entry<String, List<String>> entry : dependencyMap.entrySet()) {
             if (entry.getKey().equals(rootJobName) || entry.getValue().contains(rootJobName)) {
                 involvedJobs.add(entry.getKey());
@@ -80,23 +85,30 @@ public class JobMonitorService {
             }
         }
 
-        // Add nodes
+        // Create job nodes with their latest statuses and messages
         for (String jobName : involvedJobs) {
-            JobLog latest = jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
-            String status = (latest != null) ? latest.getStatus() : "UNKNOWN";
-
             JobDependencyDTO.Data nodeData = new JobDependencyDTO.Data();
             nodeData.setId(jobName);
             nodeData.setLabel(jobName);
-            nodeData.setStatus(status);
-            nodeData.setMessage(latest != null ? latest.getMessage() : "No recent message");
+
+            if (jobName.equals("InputFile")) {
+                nodeData.setStatus("SUCCESS");
+                nodeData.setMessage("Supplied input to processing jobs");
+            } else if (jobName.equals("ResultData")) {
+                nodeData.setStatus("SUCCESS");
+                nodeData.setMessage("Final result after processing");
+            } else {
+                JobLog latest = jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
+                nodeData.setStatus(latest != null ? latest.getStatus() : "UNKNOWN");
+                nodeData.setMessage(latest != null ? latest.getMessage() : "No recent message");
+            }
 
             JobDependencyDTO node = new JobDependencyDTO();
             node.setData(nodeData);
             elements.add(node);
         }
 
-        // Add matching edges
+        // Create edges (relationships) between nodes
         for (Map.Entry<String, List<String>> entry : dependencyMap.entrySet()) {
             String target = entry.getKey();
             for (String source : entry.getValue()) {
@@ -109,6 +121,7 @@ public class JobMonitorService {
         return elements;
     }
 
+    // Helper method to create a dependency edge
     private JobDependencyDTO makeEdge(String dependent, String job) {
         JobDependencyDTO.Data edgeData = new JobDependencyDTO.Data();
         edgeData.setSource(dependent);
@@ -119,5 +132,29 @@ public class JobMonitorService {
 
         return edge;
     }
+
+    // Combines job history for the main job and its retries or dependent jobs
+    public List<JobLog> getHistoryIncludingDependent(String jobName) {
+        // Main job’s history
+        List<JobLog> main = jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName);
+
+        // Dependent job’s history if any exist
+        String depName = "dependent" + jobName;
+        List<JobLog> dependent = Collections.emptyList();
+
+        if (!jobLogRepository.findByJobNameOrderByStartTimeDesc(depName).isEmpty()) {
+            dependent = jobLogRepository.findExecutedAndRetries(
+                    depName,
+                    Sort.by(Sort.Direction.DESC, "startTime")
+            );
+        }
+
+        // Merge both and sort by start time (descending)
+        return Stream
+                .concat(main.stream(), dependent.stream())
+                .sorted(Comparator.comparing(JobLog::getStartTime).reversed())
+                .collect(Collectors.toList());
+    }
 }
+
 

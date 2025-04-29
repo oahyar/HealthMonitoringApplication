@@ -17,16 +17,24 @@ import java.util.Random;
 public class DataGenerationService {
 
     private static final Logger logger = LoggerFactory.getLogger(DataGenerationService.class);
+
     private final ServerMetricRepository serverMetricRepository;
     private final TableSpaceRepository tableSpaceRepository;
+
+    // Random object used to simulate fluctuations in usage data
     private final Random random = new Random();
 
+    // Constructor injection of repositories
     public DataGenerationService(ServerMetricRepository serverMetricRepository, TableSpaceRepository tableSpaceRepository) {
         this.serverMetricRepository = serverMetricRepository;
         this.tableSpaceRepository = tableSpaceRepository;
     }
 
-    @Scheduled(fixedRate = 30000) // Every 30 seconds
+    /**
+     * Simulates periodic updates to disk usage data every 30 seconds.
+     * Finds all disk partitions, modifies the usage values slightly, and saves the updated entities.
+     */
+    @Scheduled(fixedRate = 30000) // Run every 30 seconds
     public void updateMockDiskUsage() {
         logger.info("Updating mock disk space data...");
 
@@ -41,17 +49,18 @@ public class DataGenerationService {
                 long totalSpace = disk.getSizeMb();
                 long currentUsed = disk.getUsedMb();
 
-                // Apply a small variation (±5% of current usage)
+                // Apply a variation of ±5% to current usage
                 long variation = (long) (currentUsed * (0.05 * (random.nextDouble() * 2 - 1))); // ±5%
                 long newUsedSpace = Math.max(0, Math.min(totalSpace, currentUsed + variation));
                 long newAvailableSpace = totalSpace - newUsedSpace;
 
+                // Update entity fields
                 disk.setUsedMb(newUsedSpace);
                 disk.setAvailableMb(newAvailableSpace);
                 disk.setUsagePct((int) ((newUsedSpace * 100) / totalSpace));
                 disk.setTimestamp(LocalDateTime.now());
 
-                serverMetricRepository.save(disk);
+                serverMetricRepository.save(disk); // Save updated entity
             } catch (Exception e) {
                 logger.error("Error updating disk partition for {}: {}", disk.getHostname(), e.getMessage(), e);
             }
@@ -60,7 +69,11 @@ public class DataGenerationService {
         logger.info("Mock disk space data updated successfully!");
     }
 
-    @Scheduled(fixedRate = 30000) // Every 30 seconds
+    /**
+     * Simulates periodic updates to Oracle tablespace usage data every 30 seconds.
+     * Finds all tablespaces, modifies the usage values slightly, and saves the updated entities.
+     */
+    @Scheduled(fixedRate = 30000) // Run every 30 seconds
     public void updateMockTableSpaceUsage() {
         logger.info("Updating mock tablespace data...");
 
@@ -76,17 +89,18 @@ public class DataGenerationService {
                 long currentFree = tablespace.getFreeSpaceMb();
                 long totalSpace = currentUsed + currentFree;
 
-                // Apply a small variation (±5% of current usage)
+                // Apply a variation of ±5% to current usage
                 long variation = (long) (currentUsed * (0.05 * (random.nextDouble() * 2 - 1))); // ±5%
                 long newUsedSpace = Math.max(0, Math.min(totalSpace, currentUsed + variation));
                 long newFreeSpace = totalSpace - newUsedSpace;
 
+                // Update entity fields
                 tablespace.setUsedSpaceMb(newUsedSpace);
                 tablespace.setFreeSpaceMb(newFreeSpace);
                 tablespace.setTotalSpaceMb(totalSpace);
-                tablespace.setUsagePct( ((newUsedSpace * 100) / totalSpace));
+                tablespace.setUsagePct((newUsedSpace * 100) / totalSpace);
 
-                tableSpaceRepository.save(tablespace);
+                tableSpaceRepository.save(tablespace); // Save updated entity
             } catch (Exception e) {
                 logger.error("Error updating tablespace {} - {}: {}", tablespace.getHostname(), tablespace.getSid(), e.getMessage(), e);
             }

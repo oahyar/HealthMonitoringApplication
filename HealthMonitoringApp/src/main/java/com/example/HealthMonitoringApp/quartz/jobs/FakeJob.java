@@ -14,55 +14,60 @@ import java.util.UUID;
 @Component
 public class FakeJob implements Job {
 
+    // Logger for recording execution steps and any errors
     private static final Logger logger = LoggerFactory.getLogger(FakeJob.class);
 
+    // Inject the Quartz Scheduler to register and trigger jobs programmatically
     @Autowired
-    private Scheduler scheduler;
+    Scheduler scheduler;
 
+    // Repository for persisting job status logs
     @Autowired
-    private JobLogRepository jobLogRepository;
+    JobLogRepository jobLogRepository;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
+        // Name of the dependent job to be managed
         String dependentJobName = "dependentJob1";
-        LocalDateTime now = LocalDateTime.now();
 
+        // Capture the current time for logging and scheduling
+        LocalDateTime now = LocalDateTime.now();
         logger.info("Job1 executing at {}", now);
 
         try {
-            // 📝 Step 1: Log the next WAITING state
+            // Step 1: Log a 'WAITING' state for the dependent job,
+            // indicating when it will next be scheduled (15 minutes from now)
             JobLog waitingLog = new JobLog();
             waitingLog.setJobName(dependentJobName);
-            waitingLog.setStartTime(now.plusMinutes(15)); // Next scheduled time
+            waitingLog.setStartTime(now.plusMinutes(15));
             waitingLog.setStatus("WAITING");
             waitingLog.setMessage("Job1 scheduled to run in 15 minutes");
             jobLogRepository.save(waitingLog);
 
-            // 🛠 Step 2: Ensure dependent job exists
+            // Step 2: Ensure the dependent job is registered in the scheduler
             JobKey dependentJobKey = new JobKey(dependentJobName);
             if (!scheduler.checkExists(dependentJobKey)) {
                 JobDetail dependentJob = JobBuilder.newJob(DependentJob.class)
                         .withIdentity(dependentJobKey)
-                        .storeDurably()
+                        .storeDurably()  // keep this job definition even without triggers
                         .build();
                 scheduler.addJob(dependentJob, false);
                 logger.info("DependentJob1 registered.");
             }
 
-            // 🚀 Step 3: Trigger the dependent job now
+            // Step 3: Create and fire a one-off trigger to run the dependent job immediately
             Trigger trigger = TriggerBuilder.newTrigger()
                     .forJob(dependentJobKey)
-                    .withIdentity("trigger_" + UUID.randomUUID())
+                    .withIdentity("trigger_" + UUID.randomUUID())  // unique trigger name
                     .startNow()
                     .build();
-
             scheduler.scheduleJob(trigger);
             logger.info("DependentJob1 triggered.");
 
         } catch (SchedulerException e) {
+            // On any scheduler failure, log the error and signal Quartz of job failure
             logger.error("Failed to run DependentJob1", e);
             throw new JobExecutionException(e);
         }
     }
 }
-

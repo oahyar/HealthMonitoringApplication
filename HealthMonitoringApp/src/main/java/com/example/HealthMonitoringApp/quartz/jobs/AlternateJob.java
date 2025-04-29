@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Component
 public class AlternateJob implements Job {
 
+    // Keeps track of whether the last run was successful
+    // Used to alternate between SUCCESS and FAILURE each time the job is triggered
     private static boolean lastRunSuccess = false;
 
     @Autowired
@@ -20,13 +22,14 @@ public class AlternateJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
+        // Record the start time of the job execution
         LocalDateTime start = LocalDateTime.now();
         String jobName = "AlternateJob";
 
         String status;
         String message;
 
-        // Alternate status
+        // Alternate job status: if the last run succeeded, this one fails, and vice versa
         if (lastRunSuccess) {
             status = "FAILED";
             message = "Simulated failure for alternating job.";
@@ -35,19 +38,13 @@ public class AlternateJob implements Job {
             message = "Simulated success for alternating job.";
         }
 
+        // Flip the flag for the next run
         lastRunSuccess = !lastRunSuccess;
 
-        JobLog log = new JobLog();
-        log.setJobName(jobName);
-        log.setStartTime(start);
-        log.setEndTime(LocalDateTime.now());
-        log.setStatus(status);
-        log.setMessage(message);
-
-        jobLogRepository.save(log);
-
+        // If status is FAILED, simulate a failure by throwing an exception
         if (status.equals("FAILED")) {
             throw new JobExecutionException("Simulated failure.");
         }
+
     }
 }

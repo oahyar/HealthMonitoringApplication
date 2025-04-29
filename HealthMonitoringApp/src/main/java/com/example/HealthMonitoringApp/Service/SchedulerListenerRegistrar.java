@@ -1,6 +1,6 @@
 package com.example.HealthMonitoringApp.Service;
 
-import com.example.HealthMonitoringApp.listener.JobLoggerListener;
+import com.example.HealthMonitoringApp.quartz.listener.JobLoggerListener;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +19,10 @@ public class SchedulerListenerRegistrar {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerListenerRegistrar.class);
 
     @Autowired
-    private Scheduler scheduler;
+    Scheduler scheduler;
 
     @Autowired
-    private JobLoggerListener jobLoggerListener;
+    JobLoggerListener jobLoggerListener;
 
     /**
      * This method runs after all dependencies are injected.
