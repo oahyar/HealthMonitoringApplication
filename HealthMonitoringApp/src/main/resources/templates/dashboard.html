@@ -5,148 +5,195 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
-<body>
+<body class="bg-light">
 
 <!-- ✅ Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#">Health Monitoring</a>
+        <a class="navbar-brand" href="/dashboard">Health Monitoring</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard">Disk Space</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/status-summary">Job Status</a>
+                </li>
+                <!-- Add more nav items here if needed -->
+            </ul>
+        </div>
     </div>
 </nav>
 
-<div class="container mt-3">
-    <h2>High Disk Usage Alert</h2>
-    <div class="d-flex align-items-center gap-2">
-        <!-- ✅ Refresh Button -->
-        <a id="refresh-btn" href="/dashboard" class="btn btn-primary">Refresh</a>
-        <p id="last-refresh" class="mb-0">Last Refreshed: --</p>
+<div class="container mt-4">
+
+    <!-- High Disk Usage Alert -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">High Disk Usage Alert</h5>
+            <div class="d-flex align-items-center gap-2">
+                <a id="refresh-btn" href="/dashboard" class="btn btn-primary btn-sm">Refresh</a>
+                <small id="last-refresh" class="text-white"
+                       th:text="'Last Refreshed: ' + ${lastRefreshed}">
+                    Last Refreshed: --
+                </small>
+            </div>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <!-- empty state -->
+                    <tbody th:if="${#lists.isEmpty(highUsageServers)}">
+                    <tr>
+                        <td colspan="2" class="text-center text-muted py-3">
+                            No current disk alerts
+                        </td>
+                    </tr>
+                    </tbody>
+                    <!-- data rows -->
+                    <tbody th:unless="${#lists.isEmpty(highUsageServers)}">
+                    <tr th:each="alert : ${highUsageServers}" class="table-danger text-white">
+                        <td th:text="${alert.hostname}">Server_3</td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-warning btn-sm retrieve-alert-details"
+                                    th:attr="data-hostname=${alert.hostname}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <table class="table table-danger mt-3">
-        <thead>
-        <tr>
-            <th>Hostname</th>
-            <th>Total Space (MB)</th>
-            <th>Available Space (MB)</th>
-            <th>Used Space (MB)</th>
-            <th>Usage (%)</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="alert : ${highUsageServers}">
-            <td th:text="${alert.hostname}"></td>
-            <td th:text="${alert.totalDiskspace}"></td>
-            <td th:text="${alert.totalAvailableDisk}"></td>
-            <td th:text="${alert.totalUsedDisk}"></td>
-            <td th:text="${alert.usagePct}"></td>
-            <td>
-                <button type="button" class="btn btn-warning retrieve-alert-details"
-                        th:attr="data-hostname=${alert.hostname}">
-                    More Details
-                </button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
 
-<div class="container mt-3">
-    <h2>High Table Space Usage Alert</h2>
-    <table class="table table-danger">
-        <thead>
-        <tr>
-            <th>Hostname</th>
-            <th>SID</th>
-            <th>Total Space (MB)</th>
-            <th>Available Space (MB)</th>
-            <th>Used Space (MB)</th>
-            <th>Usage (%)</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="alertdb : ${highUsageDb}">
-            <td th:text="${alertdb.hostname}"></td>
-            <td th:text="${alertdb.sid}"></td>
-            <td th:text="${alertdb.totalTablespace}"></td>
-            <td th:text="${alertdb.totalAvailableTablespace}"></td>
-            <td th:text="${alertdb.totalUsedTablespace}"></td>
-            <td th:text="${alertdb.usagePct}"></td>
-            <td>
-                <button type="button" class="btn btn-warning retrieve-alertdb-details"
-                        th:attr="data-sid=${alertdb.sid}">
-                    More Details
-                </button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+    <!-- High Table Space Usage Alert -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">High Table Space Usage Alert</h5>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>SID</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody th:if="${#lists.isEmpty(highUsageDb)}">
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-3">
+                            No current tablespace alerts
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tbody th:unless="${#lists.isEmpty(highUsageDb)}">
+                    <tr th:each="alertdb : ${highUsageDb}" class="table-danger text-white">
+                        <td th:text="${alertdb.hostname}">Server_1</td>
+                        <td th:text="${alertdb.sid}">SID_1_2</td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-warning btn-sm retrieve-alertdb-details"
+                                    th:attr="data-sid=${alertdb.sid}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-<!-- ✅ Disk Space Table -->
-<div class="container mt-3">
-    <h2>Disk Space Usage</h2>
-    <table class="table table-dark">
-        <thead>
-        <tr>
-            <th>Hostname</th>
-            <th>Total Space (MB)</th>
-            <th>Available Space (MB)</th>
-            <th>Used Space (MB)</th>
-            <th>Usage (%)</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="disk : ${diskUsages}">
-            <td th:text="${disk.hostname}"></td>
-            <td th:text="${disk.totalDiskspace}"></td>
-            <td th:text="${disk.totalAvailableDisk}"></td>
-            <td th:text="${disk.totalUsedDisk}"></td>
-            <td th:text="${disk.usagePct}"></td>
-            <td>
-                <button type="button" class="btn btn-primary retrieve-data-btn"
-                        th:attr="data-hostname=${disk.hostname}">
-                    More Details
-                </button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+    <!-- Disk Space Usage -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Disk Space Usage</h5>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>Total Space (MB)</th>
+                        <th>Available Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Usage (%)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody th:each="disk : ${diskUsages}">
+                    <tr>
+                        <td th:text="${disk.hostname}"></td>
+                        <td th:text="${disk.totalDiskspace}"></td>
+                        <td th:text="${disk.totalAvailableDisk}"></td>
+                        <td th:text="${disk.totalUsedDisk}"></td>
+                        <td th:text="${disk.usagePct}"></td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-primary btn-sm retrieve-data-btn"
+                                    th:attr="data-hostname=${disk.hostname}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-<!-- ✅ Tablespace Table -->
-<div class="container mt-3">
-    <h2>Tablespace Usage</h2>
-    <table class="table table-dark">
-        <thead>
-        <tr>
-            <th>Hostname</th>
-            <th>SID</th>
-            <th>Total Space (MB)</th>
-            <th>Available Space (MB)</th>
-            <th>Used Space (MB)</th>
-            <th>Usage (%)</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="table : ${tableUsages}">
-            <td th:text="${table.hostname}"></td>
-            <td th:text="${table.sid}"></td>
-            <td th:text="${table.totalTablespace}"></td>
-            <td th:text="${table.totalAvailableTablespace}"></td>
-            <td th:text="${table.totalUsedTablespace}"></td>
-            <td th:text="${table.usagePct}"></td>
-            <td>
-                <button type="button" class="btn btn-primary retrieve-table-btn"
-                        th:attr="data-hostname=${table.hostname},data-sid=${table.sid}">
-                    More Details
-                </button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+    <!-- Tablespace Usage -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Tablespace Usage</h5>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>SID</th>
+                        <th>Total Space (MB)</th>
+                        <th>Available Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Usage (%)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody th:each="t : ${tableUsages}">
+                    <tr>
+                        <td th:text="${t.hostname}"></td>
+                        <td th:text="${t.sid}"></td>
+                        <td th:text="${t.totalTablespace}"></td>
+                        <td th:text="${t.totalAvailableTablespace}"></td>
+                        <td th:text="${t.totalUsedTablespace}"></td>
+                        <td th:text="${t.usagePct}"></td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-primary btn-sm retrieve-table-btn"
+                                    th:attr="data-hostname=${t.hostname},data-sid=${t.sid}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- ✅ Modal for Showing Details -->
@@ -214,9 +261,9 @@
                     <tr>
                         <th>Hostname</th>
                         <th>Filesystem</th>
-                        <th>Size (MB)</th>
-                        <th>Available (MB)</th>
-                        <th>Used (MB)</th>
+                        <th>Available Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Total Space (MB)</th>
                         <th>Usage (%)</th>
                         <th>Mounted On</th>
                     </tr>`;
@@ -227,10 +274,10 @@
                             let row = `<tr>
                             <td>${detail.hostname}</td>
                             <td>${detail.filesystem}</td>
-                            <td>${detail.sizeMb} MB</td>
-                            <td>${detail.availableMb} MB</td>
-                            <td>${detail.usedMb} MB</td>
-                            <td>${detail.usagePct}%</td>
+                            <td>${detail.availableMb}</td>
+                            <td>${detail.usedMb}</td>
+                            <td>${detail.sizeMb}</td>
+                            <td>${detail.usagePct}</td>
                             <td>${detail.mountedOn}</td>
                         </tr>`;
                             modalTableBody.innerHTML += row;
@@ -275,9 +322,9 @@
                             <th>Hostname</th>
                             <th>SID</th>
                             <th>Tablespace Name</th>
-                            <th>Total Space (MB)</th>
                             <th>Available Space (MB)</th>
                             <th>Used Space (MB)</th>
+                            <th>Total Space (MB)</th>
                             <th>Usage (%)</th>
                         </tr>`;
 
@@ -292,10 +339,10 @@
                                 <td>${detail.hostname}</td>
                                 <td>${detail.sid}</td>
                                 <td>${detail.tablespaceName}</td>
-                                <td>${detail.freeSpaceMb} MB</td>
-                                <td>${detail.usedSpaceMb} MB</td>
-                                <td>${detail.totalSpaceMb} MB</td>
-                                <td>${detail.usagePct}%</td>
+                                <td>${detail.freeSpaceMb}</td>
+                                <td>${detail.usedSpaceMb}</td>
+                                <td>${detail.totalSpaceMb}</td>
+                                <td>${detail.usagePct}</td>
                             </tr>`;
                                 modalTableBody.innerHTML += row;
                             });

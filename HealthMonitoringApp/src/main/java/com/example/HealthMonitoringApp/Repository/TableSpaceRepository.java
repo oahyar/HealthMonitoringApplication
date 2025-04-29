@@ -73,8 +73,4 @@ public interface TableSpaceRepository extends JpaRepository<TableSpace, Long> {
             ORDER BY ts.usage_pct DESC;
             """, nativeQuery = true)
     List<Object[]> findHighUsageTablespaces(@Param("sid") String sid);
-
-    // Retrieves tablespaces where usage percentage is above the specified threshold for a given SID.
-    @Query("SELECT s FROM TableSpace s WHERE s.sid = :sid AND s.usagePct >= :threshold")
-    List<TableSpace> findBySidAndUsageAboveThreshold(@Param("sid") String sid, @Param("threshold") double threshold);
 }

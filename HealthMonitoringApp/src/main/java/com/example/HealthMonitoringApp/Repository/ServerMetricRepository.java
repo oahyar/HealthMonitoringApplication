@@ -30,7 +30,7 @@ public interface ServerMetricRepository extends JpaRepository<ServerDiskPartitio
             ) latest ON sm.hostname = latest.hostname 
                     AND sm.filesystem = latest.filesystem 
                     AND sm.timestamp = latest.latest_timestamp
-            GROUP BY sm.hostname;
+            GROUP BY sm.hostname;       
             """, nativeQuery = true)
     List<Object[]> findAggregatedSpaceMetrics();
 
@@ -68,12 +68,9 @@ public interface ServerMetricRepository extends JpaRepository<ServerDiskPartitio
                      AND sm.filesystem = latest.filesystem 
                      AND sm.timestamp = latest.latest_timestamp
             WHERE sm.hostname = :hostname 
-            AND sm.usage_pct > 80  -- Filter to include only partitions with usage greater than 70%
+            AND sm.usage_pct > 80  -- Filter to include only partitions with usage greater than 80%
             ORDER BY sm.usage_pct DESC;
             """, nativeQuery = true)
     List<ServerDiskPartition> findHighUsageFilesystems(@Param("hostname") String hostname);
 
-    // Retrieves all filesystems for a given hostname where usage percentage is above the specified threshold
-    @Query("SELECT s FROM ServerDiskPartition s WHERE s.hostname = :hostname AND s.usagePct >= :threshold")
-    List<ServerDiskPartition> findByHostnameAndUsageAboveThreshold(@Param("hostname") String hostname, @Param("threshold") double threshold);
 }
