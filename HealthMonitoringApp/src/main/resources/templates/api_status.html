@@ -101,75 +101,115 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // pulled in via Thymeleaf model
-    const warningThreshold  = /*[[${warnThreshold}]]*/ 200;
-    const criticalThreshold = /*[[${critThreshold}]]*/ 500;
+    // ───────────────────────────────────────────────────────────────────────────────
+    // Thresholds pulled in via Thymeleaf model (fallback values shown for static preview)
+    // ───────────────────────────────────────────────────────────────────────────────
+    const warningThreshold  = /*[[${warnThreshold}]]*/ 200;  // ms above which we highlight “warning”
+    const criticalThreshold = /*[[${critThreshold}]]*/ 500;  // ms above which we highlight “critical”
 
-    function formatSGT(iso) {
-        return new Intl.DateTimeFormat('en-GB',{
-            timeZone:'Asia/Singapore',
-            year:'numeric',month:'2-digit',day:'2-digit',
-            hour:'2-digit',minute:'2-digit',second:'2-digit',
-            hour12:false
-        }).format(new Date(iso)).replace(',','');
+    // ───────────────────────────────────────────────────────────────────────────────
+    // formatSGT: convert an ISO timestamp into “dd/MM/yyyy HH:mm:ss” in Singapore TZ
+    // ───────────────────────────────────────────────────────────────────────────────
+    function formatSGT(isoString) {
+        return new Intl.DateTimeFormat('en-GB', {
+            timeZone:       'Asia/Singapore', // ensure Singapore local time
+            year:           'numeric',
+            month:          '2-digit',
+            day:            '2-digit',
+            hour:           '2-digit',
+            minute:         '2-digit',
+            second:         '2-digit',
+            hour12:         false             // 24-hour clock
+        })
+            .format(new Date(isoString))        // parse ISO → Date, then format
+            .replace(',', '');                  // remove any locale comma
     }
 
-    function badgeClass(up) {
-        return up ? 'badge bg-success' : 'badge bg-danger';
+    // ───────────────────────────────────────────────────────────────────────────────
+    // badgeClass: return the correct Bootstrap classes for UP vs. DOWN
+    // ───────────────────────────────────────────────────────────────────────────────
+    function badgeClass(isUp) {
+        return isUp
+            ? 'badge bg-success'  // green badge for “UP”
+            : 'badge bg-danger';  // red badge for “DOWN”
     }
 
+    // ───────────────────────────────────────────────────────────────────────────────
+    // loadApiStatus: fetch latest logs, render table, highlight thresholds
+    // ───────────────────────────────────────────────────────────────────────────────
     async function loadApiStatus() {
         const tbody = document.getElementById('api-status-body');
-        try {
-            const res  = await fetch('/api/status/recent');
-            const logs = await res.json();
 
-            // group by API, take the newest entry
-            const latest = {};
+        try {
+            // 1) Fetch JSON array of the last 10 ApiStatusLog entries
+            const response = await fetch('/api/status/recent');
+            const logs = await response.json();
+
+            // 2) Group by apiName, keeping only the first (newest) per API
+            const latestByApi = {};
             logs.forEach(log => {
-                if (!latest[log.apiName]) {
-                    latest[log.apiName] = log;
+                if (!latestByApi[log.apiName]) {
+                    latestByApi[log.apiName] = log;
                 }
             });
 
+            // 3) Clear out existing rows (“Loading…” or old data)
             tbody.innerHTML = '';
-            Object.values(latest).forEach(log => {
+
+            // 4) Render a <tr> for each API’s latest log
+            Object.values(latestByApi).forEach(log => {
+                // Create a new row element
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-            <td>${log.apiName}</td>
-            <td><span class="${badgeClass(log.up)}">${log.up ? 'UP' : 'DOWN'}</span></td>
-            <td>${formatSGT(log.timestamp)}</td>
-            <td class="latency-cell">${log.latencyMillis}</td>
-            <td class="reason" title="${log.message || ''}">
-              ${log.message || '-'}
-            </td>
-          `;
+        <td>${log.apiName}</td>
+        <td>
+          <span class="${badgeClass(log.up)}">
+            ${log.up ? 'UP' : 'DOWN'}
+          </span>
+        </td>
+        <td>${formatSGT(log.timestamp)}</td>
+        <td class="latency-cell">${log.latencyMillis}</td>
+        <td class="reason" title="${log.message || ''}">
+          ${log.message || '-'}
+        </td>
+      `;
                 tbody.appendChild(tr);
 
-                // threshold highlighting
-                const latCell = tr.querySelector('.latency-cell');
+                // 5) Apply threshold highlighting to the latency cell
+                const latencyCell = tr.querySelector('.latency-cell');
                 if (log.latencyMillis > criticalThreshold) {
-                    latCell.classList.add('bg-danger','text-white');
+                    // Critical: red background + white text
+                    latencyCell.classList.add('bg-danger', 'text-white');
                 } else if (log.latencyMillis > warningThreshold) {
-                    latCell.classList.add('bg-warning');
+                    // Warning: yellow background
+                    latencyCell.classList.add('bg-warning');
                 }
             });
 
+            // 6) Update the “Last Refreshed” label in the header
             document.getElementById('api-last-refresh').innerText =
                 'Last Refreshed: ' + formatSGT(new Date().toISOString());
-        } catch(e) {
+
+        } catch (error) {
+            // On any error, show a full-row message
             tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-danger py-4">
-              Failed to load API status
-            </td>
-          </tr>`;
-            console.error(e);
+      <tr>
+        <td colspan="5" class="text-center text-danger py-4">
+          Failed to load API status
+        </td>
+      </tr>`;
+            console.error('Error loading API status:', error);
         }
     }
 
+    // ───────────────────────────────────────────────────────────────────────────────
+    // Wire up event listeners
+    // ───────────────────────────────────────────────────────────────────────────────
+    // Re-run the data fetch when the user clicks “Refresh”
     document.getElementById('api-refresh-btn')
         .addEventListener('click', loadApiStatus);
+
+    // Automatically run once on initial page load
     window.addEventListener('DOMContentLoaded', loadApiStatus);
 </script>
 </body>
