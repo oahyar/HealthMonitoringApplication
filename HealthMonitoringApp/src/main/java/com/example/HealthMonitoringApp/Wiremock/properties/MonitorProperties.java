@@ -11,6 +11,8 @@ import java.util.Map;
 public class MonitorProperties {
     /** How often (ms) to run all checks */
     private long rateMillis;
+    private long warnThreshold;     // new
+    private long critThreshold;     // new
 
     /** A map of [logicalName → URL] for each endpoint to ping */
     private Map<String,String> endpoints = new HashMap<>();
@@ -27,5 +29,21 @@ public class MonitorProperties {
     }
     public void setEndpoints(Map<String,String> endpoints) {
         this.endpoints = endpoints;
+    }
+
+    public long getWarnThreshold() {
+        return warnThreshold;
+    }
+
+    public void setWarnThreshold(long warnThreshold) {
+        this.warnThreshold = warnThreshold;
+    }
+
+    public long getCritThreshold() {
+        return critThreshold;
+    }
+
+    public void setCritThreshold(long critThreshold) {
+        this.critThreshold = critThreshold;
     }
 }

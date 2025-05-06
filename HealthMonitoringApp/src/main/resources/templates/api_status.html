@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -9,6 +9,13 @@
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
             rel="stylesheet"
     />
+    <style>
+        /* ellipsize long error messages */
+        td.reason {
+            white-space: normal;
+            max-width: none;
+        }
+    </style>
 </head>
 <body>
 
@@ -34,19 +41,38 @@
     </div>
 </nav>
 
-<!-- API Status Dashboard -->
+<!-- Dashboard card -->
 <div class="container mt-4">
     <div class="card mb-4">
-        <!-- Header -->
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-dark text-white d-flex align-items-center">
             <h5 class="mb-0">API Status Dashboard</h5>
-            <div class="d-flex align-items-center gap-2">
-                <button id="api-refresh-btn" class="btn btn-primary btn-sm">Refresh</button>
-                <small id="api-last-refresh" class="text-white">Last Refreshed: --</small>
+
+            <!-- Legend + Refresh all in one flex group, pushed to the right -->
+            <div class="ms-auto d-flex align-items-center gap-3">
+
+                <!-- Legend items -->
+                <small class="d-flex align-items-center">
+          <span class="d-inline-block me-1"
+                style="width:12px; height:12px; border:1px solid #dee2e6; background:#fff;"></span>
+                    ≤ 200 ms
+                </small>
+                <small class="d-flex align-items-center">
+          <span class="d-inline-block bg-warning me-1"
+                style="width:12px; height:12px;"></span>
+                    > 200 ms
+                </small>
+                <small class="d-flex align-items-center">
+          <span class="d-inline-block bg-danger me-1"
+                style="width:12px; height:12px;"></span>
+                    > 500 ms
+                </small>
+
+                <!-- Refresh button + timestamp -->
+                <button id="api-refresh-btn" class="btn btn-primary btn-sm ms-4">Refresh</button>
+                <small id="api-last-refresh" class="text-white ms-2">Last Refreshed: --</small>
             </div>
         </div>
 
-        <!-- Body -->
         <div class="card-body bg-white p-0">
             <div class="table-responsive">
                 <table class="table table-bordered table-striped table-sm mb-0">
@@ -70,18 +96,22 @@
     </div>
 </div>
 
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Fetch & Render Logic -->
 <script>
+    // pulled in via Thymeleaf model
+    const warningThreshold  = /*[[${warnThreshold}]]*/ 200;
+    const criticalThreshold = /*[[${critThreshold}]]*/ 500;
+
     function formatSGT(iso) {
-        return new Intl.DateTimeFormat('en-GB', {
-            timeZone: 'Asia/Singapore',
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: false
-        }).format(new Date(iso)).replace(',', '');
+        return new Intl.DateTimeFormat('en-GB',{
+            timeZone:'Asia/Singapore',
+            year:'numeric',month:'2-digit',day:'2-digit',
+            hour:'2-digit',minute:'2-digit',second:'2-digit',
+            hour12:false
+        }).format(new Date(iso)).replace(',','');
     }
 
     function badgeClass(up) {
@@ -94,10 +124,12 @@
             const res  = await fetch('/api/status/recent');
             const logs = await res.json();
 
-            // take only the newest entry per API
+            // group by API, take the newest entry
             const latest = {};
             logs.forEach(log => {
-                if (!latest[log.apiName]) latest[log.apiName] = log;
+                if (!latest[log.apiName]) {
+                    latest[log.apiName] = log;
+                }
             });
 
             tbody.innerHTML = '';
@@ -107,21 +139,31 @@
             <td>${log.apiName}</td>
             <td><span class="${badgeClass(log.up)}">${log.up ? 'UP' : 'DOWN'}</span></td>
             <td>${formatSGT(log.timestamp)}</td>
-            <td>${log.latencyMillis}</td>
+            <td class="latency-cell">${log.latencyMillis}</td>
             <td class="reason" title="${log.message || ''}">
               ${log.message || '-'}
             </td>
           `;
                 tbody.appendChild(tr);
+
+                // threshold highlighting
+                const latCell = tr.querySelector('.latency-cell');
+                if (log.latencyMillis > criticalThreshold) {
+                    latCell.classList.add('bg-danger','text-white');
+                } else if (log.latencyMillis > warningThreshold) {
+                    latCell.classList.add('bg-warning');
+                }
             });
 
             document.getElementById('api-last-refresh').innerText =
                 'Last Refreshed: ' + formatSGT(new Date().toISOString());
-        } catch (e) {
+        } catch(e) {
             tbody.innerHTML = `
-          <tr><td colspan="5" class="text-center text-danger py-4">
-            Failed to load API status
-          </td></tr>`;
+          <tr>
+            <td colspan="5" class="text-center text-danger py-4">
+              Failed to load API status
+            </td>
+          </tr>`;
             console.error(e);
         }
     }

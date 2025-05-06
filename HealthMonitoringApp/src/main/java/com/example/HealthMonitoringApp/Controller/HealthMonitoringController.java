@@ -323,7 +323,9 @@ public class HealthMonitoringController {
     }
 
     @GetMapping("/api-summary")
-    public String apiSummaryPage() {
+    public String apiSummaryPage(Model model) {
+        model.addAttribute("warnThreshold", monitorProperties.getWarnThreshold());
+        model.addAttribute("critThreshold", monitorProperties.getCritThreshold());
         return "api_status";    // resolves to api-summary.html in templates/
     }
 
