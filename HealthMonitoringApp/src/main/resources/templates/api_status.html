@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>API Status • Health Monitoring</title>
+    <!-- Bootstrap CSS -->
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+    />
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard">Health Monitoring</a>
+        <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navMenu"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="/dashboard">Disk Space</a></li>
+                <li class="nav-item"><a class="nav-link" href="/status-summary">Job Status</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/api-summary">API Status</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- API Status Dashboard -->
+<div class="container mt-4">
+    <div class="card mb-4">
+        <!-- Header -->
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">API Status Dashboard</h5>
+            <div class="d-flex align-items-center gap-2">
+                <button id="api-refresh-btn" class="btn btn-primary btn-sm">Refresh</button>
+                <small id="api-last-refresh" class="text-white">Last Refreshed: --</small>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-sm mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>API Name</th>
+                        <th>Status</th>
+                        <th>Last Checked</th>
+                        <th>Latency (ms)</th>
+                        <th>Reason</th>
+                    </tr>
+                    </thead>
+                    <tbody id="api-status-body">
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Loading...</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Fetch & Render Logic -->
+<script>
+    function formatSGT(iso) {
+        return new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Asia/Singapore',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
+        }).format(new Date(iso)).replace(',', '');
+    }
+
+    function badgeClass(up) {
+        return up ? 'badge bg-success' : 'badge bg-danger';
+    }
+
+    async function loadApiStatus() {
+        const tbody = document.getElementById('api-status-body');
+        try {
+            const res  = await fetch('/api/status/recent');
+            const logs = await res.json();
+
+            // take only the newest entry per API
+            const latest = {};
+            logs.forEach(log => {
+                if (!latest[log.apiName]) latest[log.apiName] = log;
+            });
+
+            tbody.innerHTML = '';
+            Object.values(latest).forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td>${log.apiName}</td>
+            <td><span class="${badgeClass(log.up)}">${log.up ? 'UP' : 'DOWN'}</span></td>
+            <td>${formatSGT(log.timestamp)}</td>
+            <td>${log.latencyMillis}</td>
+            <td class="reason" title="${log.message || ''}">
+              ${log.message || '-'}
+            </td>
+          `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('api-last-refresh').innerText =
+                'Last Refreshed: ' + formatSGT(new Date().toISOString());
+        } catch (e) {
+            tbody.innerHTML = `
+          <tr><td colspan="5" class="text-center text-danger py-4">
+            Failed to load API status
+          </td></tr>`;
+            console.error(e);
+        }
+    }
+
+    document.getElementById('api-refresh-btn')
+        .addEventListener('click', loadApiStatus);
+    window.addEventListener('DOMContentLoaded', loadApiStatus);
+</script>
+</body>
+</html>

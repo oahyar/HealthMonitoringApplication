@@ -115,7 +115,6 @@ class HealthMonitoringControllerTest {
                         "diskUsages",
                         "tableUsages",
                         "highUsageServers",
-                        "highUsageFile",
                         "highUsageDb"
                 ));
     }

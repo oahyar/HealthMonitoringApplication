@@ -1,12 +1,16 @@
 package com.example.HealthMonitoringApp.Controller;
 
+import com.example.HealthMonitoringApp.Entity.ApiStatusLog;
 import com.example.HealthMonitoringApp.Entity.JobLog;
 import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
+import com.example.HealthMonitoringApp.Repository.ApiStatusLogRepository;
 import com.example.HealthMonitoringApp.Repository.JobLogRepository;
+import com.example.HealthMonitoringApp.Service.ApiHealthService;
 import com.example.HealthMonitoringApp.Service.JobMonitorService;
 import com.example.HealthMonitoringApp.Service.ServerMetricService;
 import com.example.HealthMonitoringApp.Service.TableSpaceService;
+import com.example.HealthMonitoringApp.Wiremock.properties.MonitorProperties;
 import com.example.HealthMonitoringApp.dto.AggregatedSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.JobDependencyDTO;
@@ -49,6 +53,12 @@ public class HealthMonitoringController {
 
     @Autowired
     private JobLogRepository jobLogRepository;
+    @Autowired
+    private ApiHealthService apiHealthService;
+    @Autowired
+    private MonitorProperties monitorProperties;
+    @Autowired
+    private ApiStatusLogRepository apiStatusLogRepository;
 
     @Autowired
     private Scheduler scheduler;
@@ -296,5 +306,26 @@ public class HealthMonitoringController {
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(resource);
     }
+
+    // Matches fetch('/api/status/recent')
+    @GetMapping("/api/status/recent")
+    @ResponseBody
+    public List<ApiStatusLog> recentChecks() {
+        return apiStatusLogRepository.findTop10ByOrderByTimestampDesc();
+    }
+
+    // If you also want your “run” endpoint:
+    @GetMapping("/api/status/run")
+    @ResponseBody
+    public List<ApiStatusLog> runChecksNow() {
+        monitorProperties.getEndpoints().forEach(apiHealthService::check);
+        return apiStatusLogRepository.findTop10ByOrderByTimestampDesc();
+    }
+
+    @GetMapping("/api-summary")
+    public String apiSummaryPage() {
+        return "api_status";    // resolves to api-summary.html in templates/
+    }
+
 
 }
