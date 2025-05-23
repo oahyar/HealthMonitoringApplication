@@ -108,9 +108,9 @@ class HealthMonitoringControllerTest {
         when(tableSpaceService.getHighUsageTablespaces("ORCL")).thenReturn(List.of(ts));
         when(serverMetricService.getHighUsageFilesystems(null)).thenReturn(List.of()); // for hostname param
 
-        mockMvc.perform(get("/dashboard"))
+        mockMvc.perform(get("/disk"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("dashboard"))
+                .andExpect(view().name("disk_status"))
                 .andExpect(model().attributeExists(
                         "diskUsages",
                         "tableUsages",
@@ -131,7 +131,7 @@ class HealthMonitoringControllerTest {
         when(serverMetricService.getDiskDetailByHostname(hostname))
                 .thenReturn(List.of(partition));
 
-        mockMvc.perform(get("/dashboard/getDetailsByHostname")
+        mockMvc.perform(get("/disk/getDetailsByHostname")
                         .param("hostname", hostname))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].hostname").value("server01"))
@@ -249,9 +249,9 @@ class HealthMonitoringControllerTest {
         when(tableSpaceService.getAggregatedTableSpaceMetrics()).thenReturn(List.of(table));
         when(tableSpaceService.getHighUsageTablespaces("ORCL")).thenReturn(List.of());       // Empty
 
-        mockMvc.perform(get("/dashboard"))
+        mockMvc.perform(get("/disk"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("dashboard"))
+                .andExpect(view().name("disk_status"))
                 .andExpect(model().attributeExists("highUsageServers", "highUsageDb"))
                 .andExpect(model().attribute("highUsageServers", Matchers.empty()))
                 .andExpect(model().attribute("highUsageDb", Matchers.empty()));

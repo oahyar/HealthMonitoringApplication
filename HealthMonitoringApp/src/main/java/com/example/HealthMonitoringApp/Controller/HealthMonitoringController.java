@@ -22,7 +22,6 @@ import org.quartz.Trigger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,9 +33,8 @@ import org.springframework.web.bind.annotation.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
@@ -67,8 +65,8 @@ public class HealthMonitoringController {
      * Render the main dashboard page.
      * Adds overall and high‐usage metrics for disks and tablespaces to the model.
      */
-    @GetMapping("/dashboard")
-    public String showDashboard(String hostname, String sid, Model model) {
+    @GetMapping("/disk")
+    public String showDiskStatus(String hostname, String sid, Model model) {
         // Add all aggregated disk metrics
         model.addAttribute("diskUsages", serverMetricService.getAggregatedSpaceMetrics());
         // Add all aggregated tablespace metrics
@@ -99,13 +97,13 @@ public class HealthMonitoringController {
         }
         model.addAttribute("highUsageDb", filteredTableSpaces);
 
-        return "dashboard";
+        return "disk_status";
     }
 
     /**
      * AJAX endpoint: fetch detailed disk partitions for a specific host.
      */
-    @GetMapping("/dashboard/getDetailsByHostname")
+    @GetMapping("/disk/getDetailsByHostname")
     @ResponseBody
     public List<ServerDiskPartition> getDetailsByHostname(@RequestParam String hostname) {
         return serverMetricService.getDiskDetailByHostname(hostname);
@@ -207,20 +205,21 @@ public class HealthMonitoringController {
      * Shows each monitored job’s last run and its next scheduled fire time.
      */
     @GetMapping("/status-summary")
-    public String getJobStatusSummary(Model model) throws SchedulerException {
-        // Gather distinct job names from logs
-        List<String> allJobs = jobLogRepository.findDistinctJobNames();
+    public String getJobStatusSummary(
+            @RequestParam(name="filter", required=false) String filter,
+            Model model) throws SchedulerException {
 
-        // Filter out any names that don’t start with uppercase (non‐monitored)
+        // 1️⃣ Gather all monitored job names
+        List<String> allJobs = jobLogRepository.findDistinctJobNames();
         List<String> monitoredJobs = allJobs.stream()
                 .filter(name -> !name.isEmpty() && Character.isUpperCase(name.charAt(0)))
                 .collect(Collectors.toList());
 
-        // Build DTOs for each job
+        // 2️⃣ Build the DTOs
         List<JobStatusDTO> summaries = new ArrayList<>();
         for (String jobName : monitoredJobs) {
-            JobLog latest =
-                    jobLogRepository.findTopByJobNameOrderByStartTimeDesc(jobName);
+            JobLog latest = jobLogRepository
+                    .findTopByJobNameOrderByStartTimeDesc(jobName);
             LocalDateTime nextRun = getNextFireTime(jobName);
 
             JobStatusDTO dto = new JobStatusDTO();
@@ -228,13 +227,24 @@ public class HealthMonitoringController {
             dto.setLastStatus(latest != null ? latest.getStatus() : "UNKNOWN");
             dto.setLastRunTime(latest != null ? latest.getStartTime() : null);
             dto.setNextRunTime(nextRun);
-
             summaries.add(dto);
         }
 
+        // 3️⃣ Apply the optional filter
+        if (filter != null && !filter.isBlank()) {
+            String up = filter.toUpperCase();
+            summaries = summaries.stream()
+                    .filter(dto -> up.equals(dto.getLastStatus()))
+                    .collect(Collectors.toList());
+        }
+
+        // 4️⃣ Pass both the list and the active filter back to the view
         model.addAttribute("jobs", summaries);
+        model.addAttribute("activeFilter", filter);
+
         return "job_status";
     }
+
 
     /**
      * Helper to look up the Quartz trigger’s next fire time for a job.
@@ -329,5 +339,113 @@ public class HealthMonitoringController {
         return "api_status";    // resolves to api-summary.html in templates/
     }
 
+    @GetMapping("/dashboard")
+    public String dashboard(Model model) {
+        return "dashboard";
+    }
 
+    // Returns only host‐rows where at least one filesystem is over threshold
+    @GetMapping("/dashboard/server")
+    @ResponseBody
+    public List<AggregatedSpaceMetrics> getHighUsageServers() {
+        List<AggregatedSpaceMetrics> all = serverMetricService.getAggregatedSpaceMetrics();
+        return all.stream()
+                .filter(s -> !serverMetricService
+                        .getHighUsageFilesystems(s.getHostname())
+                        .isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    // Returns only SID‐rows where at least one tablespace is over threshold
+    @GetMapping("dashboard/db")
+    @ResponseBody
+    public List<AggregatedTableSpaceMetrics> getHighUsageDbs() {
+        List<AggregatedTableSpaceMetrics> all = tableSpaceService.getAggregatedTableSpaceMetrics();
+        return all.stream()
+                .filter(ts -> !tableSpaceService
+                        .getHighUsageTablespaces(ts.getSid())
+                        .isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/dashboard/jobcounts")
+    @ResponseBody
+    public Map<String,Long> getJobStatusCounts() throws SchedulerException {
+        // 1) Fetch all distinct, monitored job names
+        List<String> allJobs = jobLogRepository.findDistinctJobNames().stream()
+                .filter(name -> !name.isEmpty() && Character.isUpperCase(name.charAt(0)))
+                .collect(Collectors.toList());
+
+        // 2) Pull the latest status for each job
+        List<String> statuses = allJobs.stream()
+                .map(jobName -> {
+                    JobLog latest = jobLogRepository
+                            .findTopByJobNameOrderByStartTimeDesc(jobName);
+                    return latest != null
+                            ? latest.getStatus()
+                            : "UNKNOWN";
+                })
+                .collect(Collectors.toList());
+
+        // 3) Count how many of each
+        long success = statuses.stream().filter(s -> "SUCCESS".equals(s)).count();
+        long failed  = statuses.stream().filter(s -> "FAILED".equals(s)).count();
+        long waiting = statuses.stream().filter(s -> "WAITING".equals(s)).count();
+
+        // 4) Return as simple JSON
+        return Map.of(
+                "successCount", success,
+                "failCount",    failed,
+                "waitCount",    waiting
+        );
+    }
+
+    @GetMapping("/dashboard/apimetrics")
+    @ResponseBody
+    public Map<String,Object> getApiMetrics(
+            @RequestParam(name="apiName", required=false) String apiName
+    ) {
+        // 1) fetch the last 20 logs, newest first
+        List<ApiStatusLog> recent;
+        if (apiName != null && !apiName.isBlank()) {
+            recent = apiStatusLogRepository
+                    .findTop20ByApiNameOrderByTimestampDesc(apiName);
+        } else {
+            recent = apiStatusLogRepository
+                    .findTop20ByOrderByTimestampDesc();
+        }
+        // reverse so oldest → newest
+        Collections.reverse(recent);
+
+        // 2) build the label (time) list
+        DateTimeFormatter fmt = DateTimeFormatter
+                .ofPattern("HH:mm:ss")
+                .withZone(ZoneId.systemDefault());
+        List<String> labels = recent.stream()
+                .map(log -> fmt.format(log.getTimestamp()))
+                .collect(Collectors.toList());
+
+        // 3) build the latency series
+        List<Long> latencySeries = recent.stream()
+                .map(ApiStatusLog::getLatencyMillis)
+                .collect(Collectors.toList());
+
+        // 4) build the uptime series (1 = up, 0 = down)
+        List<Integer> uptimeSeries = recent.stream()
+                .map(log -> log.isUp() ? 1 : 0)
+                .collect(Collectors.toList());
+
+        // 5) return as JSON
+        return Map.of(
+                "labels",        labels,
+                "latencySeries", latencySeries,
+                "uptimeSeries",  uptimeSeries
+        );
+    }
+
+    @GetMapping("/dashboard/apistatus")
+    @ResponseBody
+    public List<ApiStatusLog> latestPerApi() {
+        return apiStatusLogRepository.findLatestPerApi();
+    }
 }

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Disk space & Database</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="bg-light">
+
+<!-- ✅ Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/disk">Health Monitoring</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/disk">Disk Space</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/status-summary">Job Status</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/api-summary">API Status</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard">Dashboard</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+
+    <!-- High Disk Usage Alert -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">High Disk Usage Alert</h5>
+            <div class="d-flex align-items-center gap-2">
+                <a id="refresh-btn" href="/disk" class="btn btn-primary btn-sm">Refresh</a>
+                <small id="last-refresh" class="text-white"
+                       th:text="'Last Refreshed: ' + ${lastRefreshed}">
+                    Last Refreshed: --
+                </small>
+            </div>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <!-- empty state -->
+                    <tbody th:if="${#lists.isEmpty(highUsageServers)}">
+                    <tr>
+                        <td colspan="2" class="text-center text-muted py-3">
+                            No current disk alerts
+                        </td>
+                    </tr>
+                    </tbody>
+                    <!-- data rows -->
+                    <tbody th:unless="${#lists.isEmpty(highUsageServers)}">
+                    <tr th:each="alert : ${highUsageServers}" class="table-danger text-white">
+                        <td th:text="${alert.hostname}">Server_3</td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-warning btn-sm retrieve-alert-details"
+                                    th:attr="data-hostname=${alert.hostname}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Table Space Usage Alert -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">High Tablespace Usage Alert</h5>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>SID</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody th:if="${#lists.isEmpty(highUsageDb)}">
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-3">
+                            No current tablespace alerts
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tbody th:unless="${#lists.isEmpty(highUsageDb)}">
+                    <tr th:each="alertdb : ${highUsageDb}" class="table-danger text-white">
+                        <td th:text="${alertdb.hostname}">Server_1</td>
+                        <td th:text="${alertdb.sid}">SID_1_2</td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-warning btn-sm retrieve-alertdb-details"
+                                    th:attr="data-sid=${alertdb.sid}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disk Space Usage -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Disk Space Usage</h5>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>Total Space (MB)</th>
+                        <th>Available Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Usage (%)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody th:each="disk : ${diskUsages}">
+                    <tr>
+                        <td th:text="${disk.hostname}"></td>
+                        <td th:text="${disk.totalDiskspace}"></td>
+                        <td th:text="${disk.totalAvailableDisk}"></td>
+                        <td th:text="${disk.totalUsedDisk}"></td>
+                        <td th:text="${disk.usagePct}"></td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-primary btn-sm retrieve-data-btn"
+                                    th:attr="data-hostname=${disk.hostname}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablespace Usage -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Tablespace Usage</h5>
+        </div>
+        <div class="card-body bg-white p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mb-0">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>SID</th>
+                        <th>Total Space (MB)</th>
+                        <th>Available Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Usage (%)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody th:each="t : ${tableUsages}">
+                    <tr>
+                        <td th:text="${t.hostname}"></td>
+                        <td th:text="${t.sid}"></td>
+                        <td th:text="${t.totalTablespace}"></td>
+                        <td th:text="${t.totalAvailableTablespace}"></td>
+                        <td th:text="${t.totalUsedTablespace}"></td>
+                        <td th:text="${t.usagePct}"></td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-primary btn-sm retrieve-table-btn"
+                                    th:attr="data-hostname=${t.hostname},data-sid=${t.sid}">
+                                More Details
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ✅ Modal for Showing Details -->
+<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalTitle">Details</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-dark">
+                    <thead id="modalTableHead">
+                    </thead>
+                    <tbody id="modalTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ JavaScript for Fetching Data -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Retrieve alert for tablespace
+        document.querySelectorAll(".retrieve-alert-details").forEach(button => {
+            button.addEventListener("click", function () {
+                let hostname = this.getAttribute("data-hostname");
+                let rowElement = this.closest("tr"); // ✅ Get the row of the clicked button
+
+                console.log("Fetching alert details for Hostname:", hostname);
+
+                let modalTitle = document.getElementById("modalTitle");
+                let modalTableHead = document.getElementById("modalTableHead");
+                let modalTableBody = document.getElementById("modalTableBody");
+
+                modalTitle.textContent = `High Disk Usage Details - ${hostname}`;
+                modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Loading...</td></tr>`;
+
+                fetch(`/high-usage-filesystems/${hostname}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(details => {
+                        console.log("Received alert details:", details);
+
+                        // ✅ Filter details that meet the threshold (≥ 70% usage)
+                        let filteredDetails = details.filter(detail => detail.usagePct >= 80);
+
+                        // ✅ If no filesystem meets the threshold, remove the server from the table
+                        if (filteredDetails.length === 0) {
+                            rowElement.style.display = "none"; // ✅ Hide the row
+                            return;
+                        }
+
+                        modalTableHead.innerHTML = `
+                    <tr>
+                        <th>Hostname</th>
+                        <th>Filesystem</th>
+                        <th>Available Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Total Space (MB)</th>
+                        <th>Usage (%)</th>
+                        <th>Mounted On</th>
+                    </tr>`;
+
+                        modalTableBody.innerHTML = "";
+
+                        filteredDetails.forEach(detail => {
+                            let row = `<tr>
+                            <td>${detail.hostname}</td>
+                            <td>${detail.filesystem}</td>
+                            <td>${detail.availableMb}</td>
+                            <td>${detail.usedMb}</td>
+                            <td>${detail.sizeMb}</td>
+                            <td>${detail.usagePct}</td>
+                            <td>${detail.mountedOn}</td>
+                        </tr>`;
+                            modalTableBody.innerHTML += row;
+                        });
+
+                        new bootstrap.Modal(document.getElementById("detailsModal")).show();
+                    })
+                    .catch(error => {
+                        console.error("Error fetching details:", error);
+                        modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error fetching data.</td></tr>`;
+                    });
+            });
+        });
+
+        // Retrieve alert for db
+        document.querySelectorAll(".retrieve-alertdb-details").forEach(button => {
+            button.addEventListener("click", function () {
+                let sid = this.getAttribute("data-sid");
+
+                console.log("Fetching tablespace details for SID:", sid);
+
+                let modalTitle = document.getElementById("modalTitle");
+                let modalTableHead = document.getElementById("modalTableHead");
+                let modalTableBody = document.getElementById("modalTableBody");
+
+                modalTitle.textContent = `High Tablespace Usage Details - ${sid}`;
+                modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Loading...</td></tr>`;
+
+                fetch(`/high-usage-db/${sid}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(details => {
+                        console.log("Received tablespace details:", details);
+
+                        // ✅ Ensure modal headers are set
+                        modalTableHead.innerHTML = `
+                        <tr>
+                            <th>Hostname</th>
+                            <th>SID</th>
+                            <th>Tablespace Name</th>
+                            <th>Available Space (MB)</th>
+                            <th>Used Space (MB)</th>
+                            <th>Total Space (MB)</th>
+                            <th>Usage (%)</th>
+                        </tr>`;
+
+                        // ✅ Reset table body
+                        modalTableBody.innerHTML = "";
+
+                        if (details.length === 0) {
+                            modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center">No high usage data found for ${sid}</td></tr>`;
+                        } else {
+                            details.forEach(detail => {
+                                let row = `<tr>
+                                <td>${detail.hostname}</td>
+                                <td>${detail.sid}</td>
+                                <td>${detail.tablespaceName}</td>
+                                <td>${detail.freeSpaceMb}</td>
+                                <td>${detail.usedSpaceMb}</td>
+                                <td>${detail.totalSpaceMb}</td>
+                                <td>${detail.usagePct}</td>
+                            </tr>`;
+                                modalTableBody.innerHTML += row;
+                            });
+                        }
+
+                        new bootstrap.Modal(document.getElementById("detailsModal")).show();
+                    })
+                    .catch(error => {
+                        console.error("Error fetching details:", error);
+                        modalTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error fetching data.</td></tr>`;
+                    });
+            });
+        });
+
+        // ✅ Remove leftover modal backdrop when modal is hidden
+        document.getElementById("detailsModal").addEventListener("hidden.bs.modal", function () {
+            console.log("Modal closed, removing backdrop...");
+            document.querySelectorAll(".modal-backdrop").forEach(backdrop => backdrop.remove());
+        });
+
+        // ✅ Fetch and Display Disk Space Details
+        document.querySelectorAll(".retrieve-data-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                let hostname = this.getAttribute("data-hostname");
+
+                console.log("Fetching details for Hostname:", hostname);
+
+                fetch(`/latest-filesystem/${hostname}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log("Received data:", data);
+
+                        let tableHead = document.querySelector("#modalTableHead");
+                        let tableBody = document.querySelector("#modalTableBody");
+
+                        tableHead.innerHTML = `<tr>
+                        <th>Hostname</th>
+                        <th>Filesystem</th>
+                        <th>Size (MB)</th>
+                        <th>Available (MB)</th>
+                        <th>Used (MB)</th>
+                        <th>Usage (%)</th>
+                        <th>Mounted On</th>
+                    </tr>`;
+                        tableBody.innerHTML = "";
+
+                        if (data.length === 0) {
+                            tableBody.innerHTML = `<tr><td colspan="7">No data found for ${hostname}</td></tr>`;
+                        } else {
+                            data.forEach(detail => {
+                                let row = `<tr>
+                                <td>${detail.hostname}</td>
+                                <td>${detail.filesystem}</td>
+                                <td>${detail.sizeMb}</td>
+                                <td>${detail.availableMb}</td>
+                                <td>${detail.usedMb}</td>
+                                <td>${detail.usagePct}</td>
+                                <td>${detail.mountedOn}</td>
+                            </tr>`;
+                                tableBody.innerHTML += row;
+                            });
+                        }
+
+                        document.getElementById("modalTitle").textContent = "Filesystem Details";
+                        new bootstrap.Modal(document.getElementById("detailsModal")).show();
+                    })
+                    .catch(error => console.error("Error fetching details:", error));
+            });
+        });
+
+        // ✅ Fetch and Display Tablespace Details
+        document.querySelectorAll(".retrieve-table-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                let hostname = this.getAttribute("data-hostname");
+                let sid = this.getAttribute("data-sid");
+
+                console.log("Fetching details for Hostname:", hostname, "SID:", sid);
+
+                fetch(`/latest-tablespace/${hostname}/${sid}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                        return response.json();
+                    })
+                    .then(details => {
+                        console.log("Received details:", details);
+
+                        let tableHead = document.querySelector("#modalTableHead");
+                        let tableBody = document.querySelector("#modalTableBody");
+
+                        tableHead.innerHTML = `<tr>
+                        <th>Hostname</th>
+                        <th>SID</th>
+                        <th>Tablespace Name</th>
+                        <th>Free Space (MB)</th>
+                        <th>Used Space (MB)</th>
+                        <th>Total Space (MB)</th>
+                        <th>Usage (%)</th>
+                    </tr>`;
+                        tableBody.innerHTML = "";
+
+                        if (details.length === 0) {
+                            tableBody.innerHTML = `<tr><td colspan="7">No data found for ${hostname} - ${sid}</td></tr>`;
+                        } else {
+                            details.forEach(detail => {
+                                let row = `<tr>
+                                <td>${detail.hostname}</td>
+                                <td>${detail.sid}</td>
+                                <td>${detail.tablespaceName}</td>
+                                <td>${detail.freeSpaceMb} MB</td>
+                                <td>${detail.usedSpaceMb} MB</td>
+                                <td>${detail.totalSpaceMb} MB</td>
+                                <td>${detail.usagePct}</td>
+                            </tr>`;
+                                tableBody.innerHTML += row;
+                            });
+                        }
+
+                        document.getElementById("modalTitle").textContent = "Tablespace Details";
+                        new bootstrap.Modal(document.getElementById("detailsModal")).show();
+                    })
+                    .catch(error => console.error("Error fetching details:", error));
+            });
+        });
+    });
+
+    // Refresh button last update time
+    function updateLastRefreshTime() {
+        // Get the current UTC time
+        const now = new Date();
+
+        // Convert UTC to Singapore Time (UTC+8)
+        const options = { timeZone: 'Asia/Singapore', year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
+        const formattedTime = new Intl.DateTimeFormat('en-GB', options).format(now).replace(',', '');
+
+        // Update the UI with the new timestamp
+        document.getElementById('last-refresh').innerText = `Last Refreshed: ${formattedTime} SGT`;
+    }
+
+    // Attach event listener to refresh button
+    document.getElementById('refresh-btn').addEventListener('click', updateLastRefreshTime);
+
+    // Set initial refresh time when the page loads
+    updateLastRefreshTime();
+
+</script>
+
+</body>
+</html>

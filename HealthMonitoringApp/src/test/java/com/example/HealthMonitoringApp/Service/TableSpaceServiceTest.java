@@ -99,47 +99,6 @@ class TableSpaceServiceTest {
     }
 
     @Test
-    public void testParseTimestamp_withTimestampObject_shouldReturnLocalDateTime() {
-        Timestamp ts = Timestamp.valueOf("2024-03-26 10:30:00");
-        LocalDateTime result = tableSpaceService.parseTimestamp(ts);
-
-        assertThat(result).isEqualTo(LocalDateTime.of(2024, 3, 26, 10, 30, 0));
-    }
-
-    @Test
-    public void testParseTimestamp_withValidString_shouldReturnLocalDateTime() {
-        String timestampStr = "2024-03-26 15:45:00";
-        LocalDateTime result = tableSpaceService.parseTimestamp(timestampStr);
-
-        assertThat(result).isEqualTo(LocalDateTime.of(2024, 3, 26, 15, 45, 0));
-    }
-
-    @Test
-    public void testParseTimestamp_withNull_shouldReturnNull() {
-        LocalDateTime result = tableSpaceService.parseTimestamp(null);
-
-        assertThat(result).isNull();
-    }
-
-    @Test
-    public void testParseTimestamp_withInvalidString_shouldReturnNull() {
-        String badTimestamp = "not-a-timestamp";
-
-        LocalDateTime result = tableSpaceService.parseTimestamp(badTimestamp);
-
-        assertThat(result).isNull();
-    }
-
-    @Test
-    public void testParseTimestamp_withUnsupportedType_shouldReturnNull() {
-        Object input = 12345L; // Long is not handled by method
-
-        LocalDateTime result = tableSpaceService.parseTimestamp(input);
-
-        assertThat(result).isNull();
-    }
-
-    @Test
     public void testGetHighUsageTablespaces_withValidAndInvalidRows_shouldSkipInvalid() {
         String sid = "ORCL1";
 

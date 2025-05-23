@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Health Monitoring</title>
+    <title>Job Status</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
@@ -13,11 +13,11 @@
 <!-- ✅ Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/dashboard">Health Monitoring</a>
+        <a class="navbar-brand" href="/disk">Health Monitoring</a>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="/dashboard">Disk Space</a>
+                    <a class="nav-link" href="/disk">Disk Space</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link active" href="/status-summary">Job Status</a>
@@ -25,7 +25,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/api-summary">API Status</a>
                 </li>
-                <!-- Add more nav items here if needed -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard">Dashboard</a>
+                </li>
             </ul>
         </div>
     </div>
@@ -74,7 +76,14 @@
                     <tbody th:unless="${#lists.isEmpty(jobs)}">
                     <tr th:each="job : ${jobs}">
                         <td th:text="${job.jobName}">ExampleJob</td>
-                        <td th:text="${job.lastStatus}">SUCCESS</td>
+                        <td
+                            th:text="${job.lastStatus}"
+                            th:classappend="
+                             ${job.lastStatus}=='SUCCESS' ? ' bg-success text-white' :
+                             (${job.lastStatus}=='FAILED'  ? ' bg-danger  text-white' :
+                             (${job.lastStatus}=='WAITING' ? ' bg-warning text-dark' : ''))
+                          ">
+                        </td>
                         <td th:text="${job.lastRunTime}">2025-04-23 10:00:00</td>
                         <td th:text="${job.nextRunTime}">2025-04-23 10:30:00</td>
                         <td class="text-center">

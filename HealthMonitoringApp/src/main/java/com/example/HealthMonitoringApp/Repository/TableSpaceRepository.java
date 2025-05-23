@@ -18,21 +18,24 @@ public interface TableSpaceRepository extends JpaRepository<TableSpace, Long> {
                 ts.hostname,
                 ts.sid,
                 SUM(ts.total_space_mb) AS totalTablespace,
-                SUM(ts.free_space_mb) AS totalAvailableTablespace,
-                SUM(ts.used_space_mb) AS totalUsedTablespace,
-                CAST((SUM(ts.used_space_mb) * 100) / NULLIF(SUM(ts.total_space_mb), 0) AS BIGINT) AS usagePct
+                SUM(ts.free_space_mb)  AS totalAvailableTablespace,
+                SUM(ts.used_space_mb)  AS totalUsedTablespace,
+                CAST((SUM(ts.used_space_mb) * 100) / NULLIF(SUM(ts.total_space_mb),0) AS BIGINT)
+                  AS usagePct
             FROM db.database_tablespace ts
             INNER JOIN (
-                -- Retrieves the latest timestamp for each hostname and SID
-                SELECT hostname, sid, MAX(timestamp) AS latest_timestamp 
-                FROM db.database_tablespace 
-                GROUP BY hostname, sid
-            ) latest ON ts.hostname = latest.hostname 
-                    AND ts.sid = latest.sid 
-                    AND ts.timestamp = latest.latest_timestamp
-            GROUP BY ts.hostname, ts.sid;
+              SELECT hostname, sid, MAX(timestamp) AS latest_timestamp
+              FROM db.database_tablespace
+              GROUP BY hostname, sid
+            ) latest 
+              ON ts.hostname = latest.hostname
+             AND ts.sid      = latest.sid
+             AND ts.timestamp= latest.latest_timestamp
+            GROUP BY ts.hostname, ts.sid
+            ORDER BY usagePct DESC
             """, nativeQuery = true)
     List<Object[]> findAggregatedTableSpaceMetrics();
+
 
     // Retrieves detailed tablespace information for a given hostname and SID.
     @Query(value = """
@@ -50,7 +53,7 @@ public interface TableSpaceRepository extends JpaRepository<TableSpace, Long> {
             ) latest ON ts.hostname = latest.hostname 
                     AND ts.sid = latest.sid 
                     AND ts.timestamp = latest.latest_timestamp
-            ORDER BY ts.tablespace_name;
+            ORDER BY ts.usage_pct DESC;
             """, nativeQuery = true)
     List<Object[]> findLatestTableSpaceDetails(@Param("hostname") String hostname, @Param("sid") String sid);
 
