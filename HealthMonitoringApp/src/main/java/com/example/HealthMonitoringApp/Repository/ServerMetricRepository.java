@@ -17,20 +17,23 @@ public interface ServerMetricRepository extends JpaRepository<ServerDiskPartitio
     @Query(value = """
             SELECT 
                 sm.hostname,
-                SUM(sm.size_mb) AS total_space_mb,
-                SUM(sm.available_mb) AS total_available_space_mb,
-                SUM(sm.used_mb) AS total_used_space_mb,
-                CAST((SUM(sm.used_mb) * 100) / NULLIF(SUM(sm.size_mb), 0) AS BIGINT) AS usage_pct
+                SUM(sm.size_mb)           AS total_space_mb,
+                SUM(sm.available_mb)      AS total_available_space_mb,
+                SUM(sm.used_mb)           AS total_used_space_mb,
+                CAST((SUM(sm.used_mb) * 100) / NULLIF(SUM(sm.size_mb), 0) AS BIGINT)
+                                          AS usage_pct
             FROM diskspace.server_disk_partitions sm
             INNER JOIN (
                 -- Retrieves the latest timestamp per hostname and filesystem
                 SELECT hostname, filesystem, MAX(timestamp) AS latest_timestamp 
                 FROM diskspace.server_disk_partitions 
                 GROUP BY hostname, filesystem
-            ) latest ON sm.hostname = latest.hostname 
-                    AND sm.filesystem = latest.filesystem 
-                    AND sm.timestamp = latest.latest_timestamp
-            GROUP BY sm.hostname;       
+            ) latest 
+              ON sm.hostname   = latest.hostname 
+             AND sm.filesystem = latest.filesystem 
+             AND sm.timestamp  = latest.latest_timestamp
+            GROUP BY sm.hostname
+            ORDER BY usage_pct DESC
             """, nativeQuery = true)
     List<Object[]> findAggregatedSpaceMetrics();
 
