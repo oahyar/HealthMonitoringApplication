@@ -4,6 +4,7 @@ import static org.mockito.Mockito.*;
 import com.example.HealthMonitoringApp.Entity.JobLog;
 import com.example.HealthMonitoringApp.Repository.JobLogRepository;
 import com.example.HealthMonitoringApp.dto.JobDependencyDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,8 +29,13 @@ class JobMonitorServiceTest {
     private JobLogRepository jobLogRepository;
     @InjectMocks
     private JobMonitorService jobMonitorService;
-
     private Scheduler scheduler;
+    @BeforeEach
+    void setUp() {
+        jobLogRepository = mock(JobLogRepository.class);
+        jobMonitorService = new JobMonitorService(null); // Scheduler is not used in this test
+        jobMonitorService.jobLogRepository = jobLogRepository;
+    }
 
 
 
@@ -190,4 +196,53 @@ class JobMonitorServiceTest {
         assertEquals("Supplied input to processing jobs", inputFileNode.getMessage());
     }
 
+    @Test
+    void testGetHistoryIncludingDependent () {
+        String jobName = "Job3";
+        String dependentJobName = "dependentJob3";
+
+        JobLog main1 = new JobLog();
+        main1.setJobName(jobName);
+        main1.setStartTime(LocalDateTime.of(2024, 6, 1, 10, 0));
+
+        JobLog dep1 = new JobLog();
+        dep1.setJobName(dependentJobName);
+        dep1.setStartTime(LocalDateTime.of(2024, 6, 1, 9, 0));
+
+        when(jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName))
+                .thenReturn(List.of(main1));
+
+        when(jobLogRepository.findByJobNameOrderByStartTimeDesc(dependentJobName))
+                .thenReturn(List.of(dep1)); // To trigger the condition
+
+        when(jobLogRepository.findExecutedAndRetries(eq(dependentJobName), any(Sort.class)))
+                .thenReturn(List.of(dep1));
+
+        List<JobLog> result = jobMonitorService.getHistoryIncludingDependent(jobName);
+
+        assertEquals(2, result.size());
+        assertEquals(jobName, result.get(0).getJobName()); // main job should come first if newer
+        assertEquals(dependentJobName, result.get(1).getJobName());
+    }
+
+    @Test
+    void testGetHistoryIncludingDependent_withOnlyMainLogs() {
+        String jobName = "Job3";
+        String dependentJobName = "dependentJob3";
+
+        JobLog main1 = new JobLog();
+        main1.setJobName(jobName);
+        main1.setStartTime(LocalDateTime.of(2024, 6, 1, 10, 0));
+
+        when(jobLogRepository.findByJobNameOrderByStartTimeDesc(jobName))
+                .thenReturn(List.of(main1));
+
+        when(jobLogRepository.findByJobNameOrderByStartTimeDesc(dependentJobName))
+                .thenReturn(List.of()); // No dependent logs
+
+        List<JobLog> result = jobMonitorService.getHistoryIncludingDependent(jobName);
+
+        assertEquals(1, result.size());
+        assertEquals(jobName, result.get(0).getJobName());
+    }
 }

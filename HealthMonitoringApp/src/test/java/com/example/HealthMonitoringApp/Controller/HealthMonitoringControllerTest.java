@@ -8,6 +8,7 @@ import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
 import com.example.HealthMonitoringApp.Repository.JobLogRepository;
 import com.example.HealthMonitoringApp.Repository.TableSpaceRepository;
+import com.example.HealthMonitoringApp.Service.ApiHealthService;
 import com.example.HealthMonitoringApp.Service.JobMonitorService;
 import com.example.HealthMonitoringApp.Service.ServerMetricService;
 import com.example.HealthMonitoringApp.Service.TableSpaceService;
@@ -45,6 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.time.LocalDateTime;
@@ -83,6 +86,10 @@ class HealthMonitoringControllerTest {
     private JobMonitorService jobMonitorService;
     @MockBean
     private JobLogRepository jobLogRepository;
+    @InjectMocks
+    private HealthMonitoringController healthMonitoringController;
+    @Mock
+    private Scheduler scheduler;
 
     @AfterEach
     void resetMocks() {
@@ -411,6 +418,50 @@ class HealthMonitoringControllerTest {
                 .andExpect(content().string(containsString("Still running")))
                 .andExpect(content().string(containsString(" - 2025-04-24T10:30")))  // ✅ with endTime
                 .andExpect(content().string(containsString(" - -")));               // ✅ without endTime (null branch)
+
+    }
+
+    @Test
+    void testGetNextFireTime_ReturnsCorrectTime() throws SchedulerException {
+        String jobName = "MyJob";
+
+        Trigger trigger = Mockito.mock(Trigger.class);
+        Date futureDate = Date.from(Instant.parse("2025-04-24T10:00:00Z"));
+        Mockito.when(trigger.getNextFireTime()).thenReturn(futureDate);
+
+        Mockito.doReturn(List.of(trigger))
+                .when(scheduler).getTriggersOfJob(new JobKey(jobName));
+
+        LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
+
+        assertEquals(LocalDateTime.ofInstant(futureDate.toInstant(), ZoneId.systemDefault()), result);
+    }
+
+    @Test
+    void testGetNextFireTime_NoTriggers_ReturnsNull() throws SchedulerException {
+        String jobName = "EmptyJob";
+
+        Mockito.when(scheduler.getTriggersOfJob(new JobKey(jobName)))
+                .thenReturn(Collections.emptyList());
+
+        LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
+
+        assertNull(result);
+    }
+
+    @Test
+    void testGetNextFireTime_NullNextFireTime_ReturnsNull() throws SchedulerException {
+        String jobName = "NullTriggerJob";
+
+        Trigger trigger = Mockito.mock(Trigger.class);
+        Mockito.when(trigger.getNextFireTime()).thenReturn(null);
+
+        Mockito.doReturn(List.of(trigger))
+                .when(scheduler).getTriggersOfJob(new JobKey(jobName));
+
+        LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
+
+        assertNull(result);
     }
 
     private JobLog createLog(String name, String status, String message, LocalDateTime start) {
@@ -422,6 +473,5 @@ class HealthMonitoringControllerTest {
         log.setEndTime(start.plusSeconds(5));
         return log;
     }
-
 
 }

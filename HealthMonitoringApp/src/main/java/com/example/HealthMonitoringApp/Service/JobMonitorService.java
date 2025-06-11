@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 public class JobMonitorService {
 
     @Autowired
-    private JobLogRepository jobLogRepository;
+    JobLogRepository jobLogRepository;
 
     // Injects the Scheduler (Quartz) instance using ObjectProvider
     private final ObjectProvider<Scheduler> schedulerProvider;

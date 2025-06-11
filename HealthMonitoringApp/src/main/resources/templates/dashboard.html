@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
     <title>Health Monitoring Dashboard</title>
@@ -107,22 +107,26 @@
             </div>
         </div>
 
-        <!-- API Status Chart -->
-        <div class="col-lg-4">
+        <!-- API Status & Charts Column -->
+        <div class="col-lg-4 d-flex flex-column">
             <!-- Card A: Status List -->
-            <div class="card mb-3 shadow-sm">
+            <div class="card mb-3 shadow-sm flex-fill">
                 <div class="card-header bg-secondary text-white d-flex align-items-center">
-                    <i class="bi bi-globe2 me-2"></i> API Status
+                    <i class="bi bi-globe2 me-2"></i>
+                    API Status
                 </div>
                 <ul id="api-status-list" class="list-group list-group-flush">
-                    <!-- JS-injected <li class="list-group-item d-flex justify-content-between">… -->
+                    <!-- JS will inject <li> items here -->
                 </ul>
             </div>
 
-            <!-- Card B: Charts -->
-            <div class="card shadow-sm">
+            <!-- Card B: Latency & Uptime Charts -->
+            <div class="card shadow-sm flex-fill d-flex flex-column">
                 <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                    <div><i class="bi bi-bar-chart-fill me-2"></i> Latency & Uptime</div>
+                    <div>
+                        <i class="bi bi-bar-chart-fill me-2"></i>
+                        Latency & Uptime
+                    </div>
                     <select id="api-select" class="form-select form-select-sm w-auto">
                         <option value="">Select API…</option>
                         <option value="users-service">users-service</option>
@@ -132,9 +136,14 @@
                         <option value="unknown-service">unknown-service</option>
                     </select>
                 </div>
-                <div class="card-body">
-                    <canvas id="apiLatencyChart" height="80"></canvas>
-                    <canvas id="apiUptimeChart"  height="50" class="mt-3"></canvas>
+                <div class="card-body d-flex flex-column p-2">
+                    <div class="flex-grow-2">
+                        <canvas id="apiLatencyChart" style="width:100%; height: 200px;"></canvas>
+                    </div>
+                    <!-- 2) Uptime: take up 1/3 of the space -->
+                    <div class="flex-grow-1 mt-3">
+                        <canvas id="apiUptimeChart" style="width:100%; height: 100px;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -276,6 +285,18 @@
 
     async function updateApiCharts() {
         const apiName = document.getElementById('api-select').value;
+
+        if (!apiName) {
+            // No API selected: clear or hide the charts
+            document.getElementById('apiLatencyChart').style.display = 'none';
+            document.getElementById('apiUptimeChart').style.display  = 'none';
+            return;
+        } else {
+            // API is selected: make sure they’re visible
+            document.getElementById('apiLatencyChart').style.display = '';
+            document.getElementById('apiUptimeChart').style.display  = '';
+        }
+
         const url     = '/dashboard/apimetrics'
             + (apiName ? `?apiName=${encodeURIComponent(apiName)}` : '');
 
@@ -357,7 +378,8 @@
                             max: 1,
                             ticks: {
                                 stepSize: 1,
-                                callback: v => v === 1 ? 'Up' : 'Down'
+                                callback: v => v === 1 ? 'Up' : 'Down',
+                                font: { size: 12 }
                             },
                             grid: {drawBorder: false}
                         },
@@ -384,16 +406,17 @@
     let firstLoad = true;
     async function updateApiStatusList() {
         const list = document.getElementById('api-status-list');
-        if (firstLoad) {
-            list.innerHTML = '<div class="p-3 text-center text-muted">Loading…</div>';
-            firstLoad = false;
-        }
-        const apis = await fetch('/dashboard/apistatus').then(r => r.ok ? r.json() : []);
+        const apis = await fetch('/dashboard/apistatus')
+            .then(r => r.ok ? r.json() : []);
         list.innerHTML = apis.length
             ? apis.map(api => `
-        <a class="list-group-item d-flex justify-content-between">
-          <div><strong>${api.apiName}</strong>
-               <small class="text-muted ms-2">${api.latencyMillis ?? '–'} ms</small>
+        <a
+          href="/api-summary?apiName=${encodeURIComponent(api.apiName)}"
+          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+        >
+          <div>
+            <strong>${api.apiName}</strong>
+            <small class="text-muted ms-2">${api.latencyMillis ?? '–'} ms</small>
           </div>
           <span class="badge ${api.up ? 'bg-success' : 'bg-danger'} rounded-pill">
             ${api.up ? 'Up' : 'Down'}

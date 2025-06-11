@@ -333,14 +333,19 @@ public class HealthMonitoringController {
     }
 
     @GetMapping("/api-summary")
-    public String apiSummaryPage(Model model) {
+    public String apiSummaryPage(
+            @RequestParam(name="apiName", required=false) String apiName, Model model)
+    {
         model.addAttribute("warnThreshold", monitorProperties.getWarnThreshold());
         model.addAttribute("critThreshold", monitorProperties.getCritThreshold());
-        return "api_status";    // resolves to api-summary.html in templates/
+        model.addAttribute("apiName", apiName);             // pass it through
+        return "api_status";
     }
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
+        List<ApiStatusLog> statuses = apiStatusLogRepository.findLatestPerApi();
+        model.addAttribute("apiStatuses", statuses);
         return "dashboard";
     }
 
@@ -448,4 +453,5 @@ public class HealthMonitoringController {
     public List<ApiStatusLog> latestPerApi() {
         return apiStatusLogRepository.findLatestPerApi();
     }
+
 }
