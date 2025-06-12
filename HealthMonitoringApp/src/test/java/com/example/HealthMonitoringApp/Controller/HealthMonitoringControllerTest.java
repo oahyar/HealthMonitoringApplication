@@ -1,17 +1,21 @@
 package com.example.HealthMonitoringApp.Controller;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.HealthMonitoringApp.Entity.ApiStatusLog;
 import com.example.HealthMonitoringApp.Entity.JobLog;
 import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
+import com.example.HealthMonitoringApp.Repository.ApiStatusLogRepository;
 import com.example.HealthMonitoringApp.Repository.JobLogRepository;
 import com.example.HealthMonitoringApp.Repository.TableSpaceRepository;
 import com.example.HealthMonitoringApp.Service.ApiHealthService;
 import com.example.HealthMonitoringApp.Service.JobMonitorService;
 import com.example.HealthMonitoringApp.Service.ServerMetricService;
 import com.example.HealthMonitoringApp.Service.TableSpaceService;
+import com.example.HealthMonitoringApp.Wiremock.properties.MonitorProperties;
 import com.example.HealthMonitoringApp.dto.AggregatedSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.JobDependencyDTO;
@@ -47,9 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.time.LocalDateTime;
 
 
@@ -85,7 +87,13 @@ class HealthMonitoringControllerTest {
     @MockBean
     private JobMonitorService jobMonitorService;
     @MockBean
+    private ApiHealthService apiHealthService;
+    @MockBean
     private JobLogRepository jobLogRepository;
+    @MockBean
+    private ApiStatusLogRepository apiStatusLogRepository;
+    @MockBean
+    private MonitorProperties monitorProperties;
     @InjectMocks
     private HealthMonitoringController healthMonitoringController;
     @Mock
@@ -462,6 +470,267 @@ class HealthMonitoringControllerTest {
         LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
 
         assertNull(result);
+    }
+
+    @Test
+    void testRecentChecks_ReturnsTop10Logs() throws Exception {
+        ApiStatusLog log1 = new ApiStatusLog();
+        log1.setId(1L);
+        log1.setApiName("API1");
+        log1.setUp(true);
+
+        ApiStatusLog log2 = new ApiStatusLog();
+        log2.setId(2L);
+        log2.setApiName("API2");
+        log2.setUp(false);
+
+        List<ApiStatusLog> mockLogs = List.of(log1, log2);
+
+        Mockito.when(apiStatusLogRepository.findTop10ByOrderByTimestampDesc()).thenReturn(mockLogs);
+
+        mockMvc.perform(get("/api/status/recent"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.length()").value(mockLogs.size()));
+    }
+
+    @Test
+    void testApiSummaryPage_WithApiNameParam() throws Exception {
+        // Mock config values
+        Mockito.when(monitorProperties.getWarnThreshold()).thenReturn(200L);
+        Mockito.when(monitorProperties.getCritThreshold()).thenReturn(500L);
+
+        mockMvc.perform(get("/api-summary?apiName=orders"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("api_status"))
+                .andExpect(model().attribute("warnThreshold", 200L))
+                .andExpect(model().attribute("critThreshold", 500L))
+                .andExpect(model().attribute("apiName", "orders"));
+    }
+
+    @Test
+    void testApiSummaryPage_WithoutApiNameParam() throws Exception {
+        // Mock config values
+        Mockito.when(monitorProperties.getWarnThreshold()).thenReturn(210L);
+        Mockito.when(monitorProperties.getCritThreshold()).thenReturn(510L);
+
+        mockMvc.perform(get("/api-summary"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("api_status"))
+                .andExpect(model().attribute("warnThreshold", 210L))
+                .andExpect(model().attribute("critThreshold", 510L))
+                .andExpect(model().attribute("apiName", nullValue()));
+    }
+
+    @Test
+    void testDashboardPageLoadsWithApiStatuses() throws Exception {
+        ApiStatusLog log1 = new ApiStatusLog();
+        log1.setId(1L);
+        log1.setApiName("API1");
+        log1.setUp(true);
+        log1.setMessage(null);
+
+        ApiStatusLog log2 = new ApiStatusLog();
+        log2.setId(2L);
+        log2.setApiName("API2");
+        log2.setUp(false);
+        log2.setMessage("500 error");
+
+        List<ApiStatusLog> mockLogs = List.of(log1, log2);
+
+        Mockito.when(apiStatusLogRepository.findLatestPerApi()).thenReturn(mockLogs);
+
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("dashboard"))
+                .andExpect(model().attributeExists("apiStatuses"))
+                .andExpect(model().attribute("apiStatuses", mockLogs));
+    }
+
+    @Test
+    void testGetHighUsageServers() throws Exception {
+        // Sample host metrics
+        AggregatedSpaceMetrics server1 = new AggregatedSpaceMetrics("host1", 200L, 20L,180L,90L);
+        AggregatedSpaceMetrics server2 = new AggregatedSpaceMetrics("host2", 200L, 180L,20L,10L);
+        List<AggregatedSpaceMetrics> allServers = List.of(server1, server2);
+
+        ServerDiskPartition mockPartition = Mockito.mock(ServerDiskPartition.class);
+
+        // Mock service returns
+        Mockito.when(serverMetricService.getAggregatedSpaceMetrics()).thenReturn(allServers);
+        Mockito.when(serverMetricService.getHighUsageFilesystems("host1"))
+                .thenReturn(List.of(mockPartition));  // Host1 has high usage
+        Mockito.when(serverMetricService.getHighUsageFilesystems("host2"))
+                .thenReturn(Collections.emptyList());  // Host2 doesn't
+
+        mockMvc.perform(get("/dashboard/server"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.length()").value(1))  // Only one host returned
+                .andExpect(jsonPath("$[0].hostname").value("host1"));
+    }
+
+    @Test
+    void testGetHighUsageDbs() throws Exception {
+        AggregatedTableSpaceMetrics ts1 = new AggregatedTableSpaceMetrics("H1","SID1",200L,20L,180L,90L);
+
+        AggregatedTableSpaceMetrics ts2 = new AggregatedTableSpaceMetrics("H2","SID2",200L,180L,20L,10L);
+
+        List<AggregatedTableSpaceMetrics> allMetrics = List.of(ts1, ts2);
+
+        TableSpace mockTablespace = new TableSpace(); // or mock(TableSpace.class)
+
+        // Mock the service calls
+        Mockito.when(tableSpaceService.getAggregatedTableSpaceMetrics())
+                .thenReturn(allMetrics);
+
+        Mockito.when(tableSpaceService.getHighUsageTablespaces("SID1"))
+                .thenReturn(List.of(mockTablespace)); // SID1 has usage
+
+        Mockito.when(tableSpaceService.getHighUsageTablespaces("SID2"))
+                .thenReturn(Collections.emptyList()); // SID2 is ignored
+
+        mockMvc.perform(get("/dashboard/db"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].sid").value("SID1"));
+    }
+
+    @Test
+    void testGetJobStatusCounts() throws Exception {
+        // Step 1: mock distinct job names
+        List<String> jobNames = List.of("JobA", "JobB", "JobC", "JobD");
+        Mockito.when(jobLogRepository.findDistinctJobNames()).thenReturn(jobNames);
+
+        // Step 2: mock latest JobLog for each
+        JobLog jobA = new JobLog(); jobA.setStatus("SUCCESS");
+        JobLog jobB = new JobLog(); jobB.setStatus("FAILED");
+        JobLog jobC = new JobLog(); jobC.setStatus("SUCCESS");
+        JobLog jobD = new JobLog(); jobD.setStatus("SUCCESS");
+
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("JobA")).thenReturn(jobA);
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("JobB")).thenReturn(jobB);
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("JobC")).thenReturn(jobC);
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("JobD")).thenReturn(jobD);
+
+        // Step 3: perform the GET request
+        mockMvc.perform(get("/dashboard/jobcounts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successCount").value(3))
+                .andExpect(jsonPath("$.failCount").value(1))
+                .andExpect(jsonPath("$.waitCount").value(0));
+    }
+
+    @Test
+    void testGetJobStatusCounts_withFiltering() throws Exception {
+        // Contains: valid name, empty name, lowercase name
+        List<String> jobNames = List.of("JobA", "", "jobb");
+
+        // Only "JobA" should be considered
+        JobLog jobA = new JobLog(); jobA.setStatus("SUCCESS");
+
+        Mockito.when(jobLogRepository.findDistinctJobNames()).thenReturn(jobNames);
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("JobA")).thenReturn(jobA);
+
+        // These are ignored (but safe to mock as null or not at all)
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("")).thenReturn(null);
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("jobb")).thenReturn(null);
+
+        mockMvc.perform(get("/dashboard/jobcounts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successCount").value(1))
+                .andExpect(jsonPath("$.failCount").value(0))
+                .andExpect(jsonPath("$.waitCount").value(0));
+    }
+
+    @Test
+    void testGetJobStatusCounts_withUnknownStatus() throws Exception {
+        List<String> jobNames = List.of("JobB");
+
+        Mockito.when(jobLogRepository.findDistinctJobNames()).thenReturn(jobNames);
+        Mockito.when(jobLogRepository.findTopByJobNameOrderByStartTimeDesc("JobB")).thenReturn(null); // Triggers UNKNOWN
+
+        mockMvc.perform(get("/dashboard/jobcounts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successCount").value(0))
+                .andExpect(jsonPath("$.failCount").value(0))
+                .andExpect(jsonPath("$.waitCount").value(0));
+    }
+
+    @Test
+    void testGetApiMetrics_withApiName() throws Exception {
+        ApiStatusLog log1 = new ApiStatusLog();
+        log1.setApiName("users");
+        log1.setTimestamp(Instant.now().minusSeconds(30));
+        log1.setLatencyMillis(120L);
+        log1.setUp(true);
+
+        ApiStatusLog log2 = new ApiStatusLog();
+        log2.setApiName("users");
+        log2.setTimestamp(Instant.now());
+        log2.setLatencyMillis(200L);
+        log2.setUp(false);
+
+        Mockito.when(apiStatusLogRepository.findTop20ByApiNameOrderByTimestampDesc("users"))
+                .thenReturn(new ArrayList<>(List.of(log2, log1))); // simulate newest to oldest
+
+        mockMvc.perform(get("/dashboard/apimetrics")
+                        .param("apiName", "users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.labels").isArray())
+                .andExpect(jsonPath("$.latencySeries[0]").value(120))
+                .andExpect(jsonPath("$.latencySeries[1]").value(200))
+                .andExpect(jsonPath("$.uptimeSeries[0]").value(1))
+                .andExpect(jsonPath("$.uptimeSeries[1]").value(0));
+
+        mockMvc.perform(get("/dashboard/apimetrics?apiName=myApi"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.labels").exists());
+
+        mockMvc.perform(get("/dashboard/apimetrics?apiName="))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.labels").exists());
+
+        mockMvc.perform(get("/dashboard/apimetrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.labels").exists());
+
+    }
+
+    @Test
+    void testGetApiMetrics_withoutApiName() throws Exception {
+        ApiStatusLog log = new ApiStatusLog();
+        log.setApiName("orders");
+        log.setTimestamp(Instant.now());
+        log.setLatencyMillis(300L);
+        log.setUp(true);
+
+        Mockito.when(apiStatusLogRepository.findTop20ByOrderByTimestampDesc())
+                .thenReturn(List.of(log));
+
+        mockMvc.perform(get("/dashboard/apimetrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.labels[0]").exists())
+                .andExpect(jsonPath("$.latencySeries[0]").value(300))
+                .andExpect(jsonPath("$.uptimeSeries[0]").value(1));
+    }
+
+    @Test
+    void testLatestPerApi() throws Exception {
+        ApiStatusLog log = new ApiStatusLog();
+        log.setApiName("UserAPI");
+        log.setTimestamp(Instant.now());
+        log.setLatencyMillis(150L);
+        log.setUp(true);
+
+        List<ApiStatusLog> logs = List.of(log);
+        Mockito.when(apiStatusLogRepository.findLatestPerApi()).thenReturn(logs);
+
+        mockMvc.perform(get("/dashboard/apistatus"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].apiName").value("UserAPI"))
+                .andExpect(jsonPath("$[0].latencyMillis").value(150))
+                .andExpect(jsonPath("$[0].up").value(true));
     }
 
     private JobLog createLog(String name, String status, String message, LocalDateTime start) {
