@@ -96,6 +96,8 @@ class HealthMonitoringControllerTest {
     private MonitorProperties monitorProperties;
     @InjectMocks
     private HealthMonitoringController healthMonitoringController;
+    @InjectMocks
+    private JobController jobController;
     @Mock
     private Scheduler scheduler;
 
@@ -440,7 +442,7 @@ class HealthMonitoringControllerTest {
         Mockito.doReturn(List.of(trigger))
                 .when(scheduler).getTriggersOfJob(new JobKey(jobName));
 
-        LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
+        LocalDateTime result = jobController.getNextFireTime(jobName);
 
         assertEquals(LocalDateTime.ofInstant(futureDate.toInstant(), ZoneId.systemDefault()), result);
     }
@@ -452,7 +454,7 @@ class HealthMonitoringControllerTest {
         Mockito.when(scheduler.getTriggersOfJob(new JobKey(jobName)))
                 .thenReturn(Collections.emptyList());
 
-        LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
+        LocalDateTime result = jobController.getNextFireTime(jobName);
 
         assertNull(result);
     }
@@ -467,7 +469,7 @@ class HealthMonitoringControllerTest {
         Mockito.doReturn(List.of(trigger))
                 .when(scheduler).getTriggersOfJob(new JobKey(jobName));
 
-        LocalDateTime result = healthMonitoringController.getNextFireTime(jobName);
+        LocalDateTime result = jobController.getNextFireTime(jobName);
 
         assertNull(result);
     }
