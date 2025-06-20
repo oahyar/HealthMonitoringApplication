@@ -10,7 +10,6 @@ import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
 import com.example.HealthMonitoringApp.Repository.ApiStatusLogRepository;
 import com.example.HealthMonitoringApp.Repository.JobLogRepository;
-import com.example.HealthMonitoringApp.Repository.TableSpaceRepository;
 import com.example.HealthMonitoringApp.Service.ApiHealthService;
 import com.example.HealthMonitoringApp.Service.JobMonitorService;
 import com.example.HealthMonitoringApp.Service.ServerMetricService;
@@ -21,12 +20,10 @@ import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.JobDependencyDTO;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -40,7 +37,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -48,7 +44,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
@@ -57,7 +52,7 @@ import java.time.LocalDateTime;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class HealthMonitoringControllerTest {
+class ServerDbControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -95,7 +90,7 @@ class HealthMonitoringControllerTest {
     @MockBean
     private MonitorProperties monitorProperties;
     @InjectMocks
-    private HealthMonitoringController healthMonitoringController;
+    private ServerDbController serverDbController;
     @InjectMocks
     private JobController jobController;
     @Mock

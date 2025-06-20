@@ -1,7 +1,5 @@
 package com.example.HealthMonitoringApp.Controller;
 
-import com.example.HealthMonitoringApp.Entity.ApiStatusLog;
-import com.example.HealthMonitoringApp.Entity.JobLog;
 import com.example.HealthMonitoringApp.Entity.ServerDiskPartition;
 import com.example.HealthMonitoringApp.Entity.TableSpace;
 import com.example.HealthMonitoringApp.Repository.ApiStatusLogRepository;
@@ -13,32 +11,17 @@ import com.example.HealthMonitoringApp.Service.TableSpaceService;
 import com.example.HealthMonitoringApp.Wiremock.properties.MonitorProperties;
 import com.example.HealthMonitoringApp.dto.AggregatedSpaceMetrics;
 import com.example.HealthMonitoringApp.dto.AggregatedTableSpaceMetrics;
-import com.example.HealthMonitoringApp.dto.JobDependencyDTO;
-import com.example.HealthMonitoringApp.dto.JobStatusDTO;
-import org.quartz.JobKey;
 import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.Trigger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
-public class HealthMonitoringController {
+public class ServerDbController {
 
     @Autowired
     private ServerMetricService serverMetricService;
