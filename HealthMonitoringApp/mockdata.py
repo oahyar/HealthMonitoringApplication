@@ -3,13 +3,18 @@ import psycopg2
 from sqlalchemy import create_engine
 import pandas as pd
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env
+load_dotenv()
 
 # PostgreSQL Configuration
-DB_HOST = "localhost"
-DB_PORT = "5433"
-DB_USER = "postgres"
-DB_PASSWORD = "qwer"
-DB_NAME = "my_database"
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
 
 # Create PostgreSQL Connection
 engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
