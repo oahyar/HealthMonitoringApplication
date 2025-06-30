@@ -10,13 +10,26 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.List;
 
+import static com.example.HealthMonitoringApp.CpuDuringLoadTest.startCpuLogging;
+
 @SpringBootApplication
 @EnableScheduling
 @EnableConfigurationProperties
 public class HealthMonitoringAppApplication implements CommandLineRunner {
 
     public static void main(String[] args) {
+
         SpringApplication.run(HealthMonitoringAppApplication.class, args);
+
+//        new Thread(() -> CpuDuringLoadTest.startCpuLogging(180, "cpu_log.csv")).start();
+//
+//        try {
+//            Process process = new ProcessBuilder("k6", "run", "C:\\Users\\oahya\\Documents\\Y3T2\\CAPSTONE\\HealthMonitoringApplication\\HealthMonitoringApplication\\HealthMonitoringApp\\src\\test\\loadtest\\load-test-api.js")
+//                    .inheritIO().start();
+//            process.waitFor();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override

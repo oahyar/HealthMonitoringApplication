@@ -52,14 +52,6 @@ public class APIController {
         return apiStatusLogRepository.findTop10ByOrderByTimestampDesc();
     }
 
-    // If you also want your “run” endpoint:
-//    @GetMapping("/api/status/run")
-//    @ResponseBody
-//    public List<ApiStatusLog> runChecksNow() {
-//        monitorProperties.getEndpoints().forEach(apiHealthService::check);
-//        return apiStatusLogRepository.findTop10ByOrderByTimestampDesc();
-//    }
-
     @GetMapping("/api-summary")
     public String apiSummaryPage(
             @RequestParam(name="apiName", required=false) String apiName, Model model)
