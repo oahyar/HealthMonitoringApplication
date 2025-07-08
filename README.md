@@ -52,7 +52,6 @@ python C:\Users\oahya\Documents\Y3T2\CAPSTONE\HealthMonitoringApplication\Health
  ```
 
 ## 3. Configure Spring Boot (Required before running)
-
 Update spring boot application.properties to match database settings:
 ```
 spring.application.name=HealthMonitoringApp
@@ -69,7 +68,7 @@ Run the Spring Boot Application
   2. Locate main class : ```HealthMonitoringAppApplication.java```
   3. Right click and run the file / use IDE's Run button
 
-
+---
 ### 📄 Setup Script: setup.sql
 The setup.sql script performs the following tasks:
 
