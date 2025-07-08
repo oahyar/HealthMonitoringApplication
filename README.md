@@ -25,7 +25,7 @@ Run the setup script
 ```sql
 'C:/Users/oahya/Documents/Y3T2/CAPSTONE/HealthMonitoringApplication/HealthMonitoringApplication/setup.sql'
 ```
-* Ensure that the path is correct and you have read permissions for the file.* 
+_Ensure that the path is correct and you have read permissions for the file._ 
 
 ##2. Import data into database for servers and database tablespace
 
