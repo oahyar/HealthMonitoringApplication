@@ -1,21 +1,12 @@
-TRUNCATE TABLE my_database.diskspace.server_disk_partitions RESTART IDENTITY CASCADE;
-
--- Step 1: Create the database
--- You must be connected to the default 'postgres' database to run this
-CREATE DATABASE my_database2;
-
--- Step 2: Connect to the newly created database
-\c my_database;
-
--- Step 3: Create necessary schemas
+-- Step 1: Create necessary schemas
 CREATE SCHEMA IF NOT EXISTS api;
 CREATE SCHEMA IF NOT EXISTS db;
 CREATE SCHEMA IF NOT EXISTS diskspace;
 CREATE SCHEMA IF NOT EXISTS jobs;
 
--- Step 4: Create tables in respective schemas
+-- Step 2: Create tables in respective schemas
 
--- 4.1 API Status Log Table
+-- 2.1 API Status Log Table
 CREATE TABLE api.api_status_log (
                                     id BIGSERIAL PRIMARY KEY,
                                     api_name VARCHAR(255),
@@ -25,7 +16,7 @@ CREATE TABLE api.api_status_log (
                                     message TEXT
 );
 
--- 4.2 Database Tablespace Table
+-- 2.2 Database Tablespace Table
 CREATE TABLE db.database_tablespace (
                                         id BIGSERIAL PRIMARY KEY,
                                         timestamp TIMESTAMP,
@@ -38,7 +29,7 @@ CREATE TABLE db.database_tablespace (
                                         usage_pct BIGINT
 );
 
--- 4.3 Server Disk Partitions Table
+-- 2.3 Server Disk Partitions Table
 CREATE TABLE diskspace.server_disk_partitions (
                                                   id BIGSERIAL PRIMARY KEY,
                                                   timestamp TIMESTAMP,
@@ -51,7 +42,7 @@ CREATE TABLE diskspace.server_disk_partitions (
                                                   filesystem VARCHAR(255)
 );
 
--- 4.4 Job Logs Table
+-- 2.4 Job Logs Table
 CREATE TABLE jobs.job_logs (
                                id BIGSERIAL PRIMARY KEY,
                                job_name VARCHAR(255),
