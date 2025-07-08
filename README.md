@@ -69,7 +69,7 @@ Run the Spring Boot Application
   3. Right click and run the file / use IDE's Run button
 
 ---
-### 📄 Setup Script: setup.sql
+### Setup Script: setup.sql
 The setup.sql script performs the following tasks:
 
 1. Creates the required schemas:
