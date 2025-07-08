@@ -21,9 +21,9 @@ The setup.sql script performs the following tasks:
 - jobs.job_logs
 
 ### ⚙️ How to Run the Script
-1. Connect to PostgreSQL
-Make sure PostgreSQL is running and accessible.
-You must run the script from the default postgres database to create a new database:
+1. Connect to PostgreSQL:
+- Make sure PostgreSQL is running and accessible.
+- You must run the script from the default postgres database to create a new database:
 
 ```psql -U your_username -d postgres -f setup.sql```
 
