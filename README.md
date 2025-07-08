@@ -1,6 +1,6 @@
 # HealthMonitoringApplication
 
-##1. PostgreSQL Database Setup Instructions
+## 1. PostgreSQL Database Setup Instructions
 This project uses PostgreSQL for data persistence. A single SQL script (setup.sql) is provided to initialize the database, schemas, and all necessary tables for the system to function properly.
 
 Connect to PostgreSQL using cmd:
@@ -27,7 +27,7 @@ Run the setup script
 ```
 _Ensure that the path is correct and you have read permissions for the file._ 
 
-##2. Import data into database for servers and database tablespace
+## 2. Import data into database for servers and database tablespace
 
 Create .env File in Project Root
 ```ini
@@ -51,7 +51,7 @@ python C:\Users\oahya\Documents\Y3T2\CAPSTONE\HealthMonitoringApplication\Health
 python C:\Users\oahya\Documents\Y3T2\CAPSTONE\HealthMonitoringApplication\HealthMonitoringApplication\HealthMonitoringApp\mockdata_diskspace.py
  ```
 
-##3. Configure Spring Boot (Required before running)
+## 3. Configure Spring Boot (Required before running)
 
 Update spring boot application.properties to match database settings:
 ```
