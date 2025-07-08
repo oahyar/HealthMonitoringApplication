@@ -1,20 +1,23 @@
 # HealthMonitoringApplication
 
-## 🛠️ PostgreSQL Database Setup
+## 🛠️ PostgreSQL Database Setup Instructions
 This project uses PostgreSQL for data persistence. A single SQL script (setup.sql) is provided to initialize the database, schemas, and all necessary tables for the system to function properly.
+
+Open `SQL Shell (psql)` or pgAdmin and run:
+```sql
+CREATE DATABASE my_database;
+```
 
 ### 📄 Setup Script: setup.sql
 The setup.sql script performs the following tasks:
 
-1. Creates a new database: my_database
-2. Switches context to my_database
-3. Creates the required schemas:
+1. Creates the required schemas:
 - api
 - db
 - diskspace
 - jobs
 
-4. Creates the following tables under respective schemas:
+2. Creates the following tables under respective schemas:
 - api.api_status_log
 - db.database_tablespace
 - diskspace.server_disk_partitions
