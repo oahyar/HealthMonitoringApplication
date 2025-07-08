@@ -26,7 +26,7 @@ Make sure PostgreSQL is running and accessible.
 
 You must run the script from the default postgres database to create a new database:
 
-psql -U your_username -d postgres -f setup.sql
+```psql -U your_username -d postgres -f setup.sql```
 
 If you encounter permission issues, ensure:
 - Your user has CREATEDB privileges.
@@ -35,11 +35,13 @@ If you encounter permission issues, ensure:
 **🔧 Spring Boot Configuration (application.properties)**
 Update your src/main/resources/application.properties to point to the right database:
 
+```
 spring.datasource.url=jdbc:postgresql://localhost:5432/my_database
 spring.datasource.username=your_username
 spring.datasource.password=your_password
 spring.jpa.hibernate.ddl-auto=none
 spring.sql.init.mode=never
+```
 
 **✅ Verifying the Setup**
 After running the script:
