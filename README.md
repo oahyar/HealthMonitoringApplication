@@ -50,6 +50,7 @@ python C:\Users\oahya\Documents\Y3T2\CAPSTONE\HealthMonitoringApplication\Health
 
 python C:\Users\oahya\Documents\Y3T2\CAPSTONE\HealthMonitoringApplication\HealthMonitoringApplication\HealthMonitoringApp\mockdata_diskspace.py
  ```
+Ensure that the path is correct.
 
 ## 3. Configure Spring Boot (Required before running)
 Update spring boot application.properties to match database settings:
